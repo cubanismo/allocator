@@ -95,3 +95,39 @@ Requirements
   that it can be shared across process boundaries, building up image
   properties across multiple instances of the allocator library.
 
+
+Capabilities Set Math
+---------------------
+
+A description of what it means to construct the union of constraints and
+intersection of capabilities.
+
+A capabilities set is an array of capabilities descriptors (each with one
+or more `capabilities_header_t` plus associated payload if any) with a
+corresponding `constraint_t` block.  For example:
+
+device A:
+```
+  {FOO_TILED(32,64) | FOO_COMPRESSED}, <constraintsA1>
+  {FOO_TILED(32,64)}, <constraintsA2>
+  {BAR_TILED(16,16)}, <constraintsA3>
+  {FOO_LINEAR}, <constraintsA4>
+```
+which means that device A supports TILED+COMPRESSED, or TILED, or LINEAR.
+
+device B:
+```
+  {BAR_TILED(16,16)}, <constraintsB1>
+  {BASE_LINEAR}, <constraintsB2>
+```
+
+intersection:
+```
+  {BAR_TILED(16,16)}, union(<constraintsA3>, <constraintsB1>)
+  {BASE_LINEAR}, union(<constraintsA4>, <constraintsB2>)
+```
+
+TODO I guess if we used dataformat, maybe the capabilities block simply
+becomes a dataformat block?  So a *Capabilities Set* is just a set of
+pairs of dataformat block plus corresponding `constraint_t` block?
+
