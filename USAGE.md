@@ -101,18 +101,16 @@ combine_capabilities(&result_capabilities, camera_capabilities);
 Allocate Buffer
 ---------------
 
-Just try allocating from each device until one succeeds.
+Ask the allocator to create the buffer, it will go around and ask each
+of the devices it knows about to do the allocation until one succeeds.
+
+This means the allocation may be done on a device not involved in the
+buffer sharing itself, like ION.
 
 ```
 alloc_bo_t *buf;
 
-buf = alloc_bo_create(display, &assertion, &result_capabilities);
-if (!buf)
-    buf = alloc_bo_create(camera, &assertion, &result_capabilities);
-#ifdef HAVE_ION
-if (!buf)
-    buf = alloc_bo_create(ion, &assertion, &result_capabilities);
-#endif
+buf = alloc_bo_create(&assertion, &result_capabilities);
 
 assert(buf);
 ```
