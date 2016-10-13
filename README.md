@@ -111,7 +111,7 @@ device A:
   {FOO_TILED(32,64) | FOO_COMPRESSED}, <constraintsA1>
   {FOO_TILED(32,64)}, <constraintsA2>
   {BAR_TILED(16,16)}, <constraintsA3>
-  {FOO_LINEAR}, <constraintsA4>
+  {BASE_LINEAR}, <constraintsA4>
 ```
 which means that device A supports TILED+COMPRESSED, or TILED, or LINEAR.
 
