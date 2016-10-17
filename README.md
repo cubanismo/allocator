@@ -18,7 +18,7 @@ ABIs:
 
 2. A driver/backend/plugin API and ABI
 
-While the APIs will be similar, if not identical, they server different
+While the APIs will be similar, if not identical, they serve different
 purposes.  The application API will be used by clients of the library
 to (TODO: [JRJ] This list is incomplete and may contain non-concensus
 items):
