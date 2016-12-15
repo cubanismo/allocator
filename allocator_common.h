@@ -55,6 +55,7 @@
 #define VENDOR_BASE                             0x00000000
 #define VENDOR_NVIDIA                           0x000010DE
 #define VENDOR_ARM                              0x000013B5
+#define VENDOR_INTEL                            0x00008086
 
 /*!
  * Opaque pointer to a device handle
