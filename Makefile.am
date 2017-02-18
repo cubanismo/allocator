@@ -1,4 +1,4 @@
-# Copyright (c) 2016 NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2017 NVIDIA CORPORATION.  All rights reserved.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -6,10 +6,10 @@
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,19 +18,41 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-all: test_headers doxygen
+SUBDIRS = src
+ACLOCAL_AMFLAGS = -I m4
+EXTRA_DIST = autogen.sh README.md
 
-.PHONY: test_headers
-test_headers: allocator_common.h
-	echo '#include "allocator_common.h"' > .test.c
-	$(CC) -Wall -Werror -c .test.c -o .test.o
-	rm .test.o .test.c
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = liballocator.pc
 
-.PHONY: doxygen
-DOXYGEN ?= doxygen
-doxygen:
-	$(DOXYGEN)
+HEADERS_TO_TEST = \
+	allocator/common.h \
+	allocator/allocator.h
 
-.PHONY: clean
-clean:
-	rm -rf doxygen/
+LOCAL_TARGETS = test_headers.timestamp
+LOCAL_CLEAN = $(top_builddir)/test_headers.timestamp
+
+test_headers.timestamp: $(add_prefix $(top_srcdir),$(HEADERS_TO_TEST))
+	for HEADER in $(HEADERS_TO_TEST); do \
+		echo -n '#include "' >> .test.c; \
+		echo -n $$HEADER >> .test.c; \
+		echo '"' >> .test.c; \
+	done
+	$(CC) -I$(top_srcdir)/include -Wall -Werror -c .test.c -o .test.o
+	rm .test.o
+	echo Timestamp > test_headers.timestamp
+
+#rm .test.o .test.c
+if HAVE_DOXYGEN
+LOCAL_TARGETS += doxygen/doxygen.timestamp
+LOCAL_CLEAN += $(top_builddir)/doxygen
+
+doxygen/doxygen.timestamp:
+	$(DOXYGEN) Doxyfile
+	echo Timestamp > doxygen/doxygen.timestamp
+endif
+
+all-local: $(LOCAL_TARGETS)
+
+clean-local:
+	rm -rf $(LOCAL_CLEAN)

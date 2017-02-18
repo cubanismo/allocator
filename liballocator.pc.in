@@ -1,0 +1,10 @@
+prefix=@prefix@
+includedir=@includedir@
+datarootdir=@datarootdir@
+datadir=@datadir@
+
+Name: liballocator
+Description: Generic device-accessible memory allocator
+Version: @PACKAGE_VERSION@
+Libs:
+Cflags: -I${includedir}

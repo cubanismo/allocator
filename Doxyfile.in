@@ -4,8 +4,8 @@
 # Project related configuration options
 #---------------------------------------------------------------------------
 DOXYFILE_ENCODING      = UTF-8
-PROJECT_NAME           = "Allocator"
-PROJECT_NUMBER         =
+PROJECT_NAME           = @PACKAGE_NAME@
+PROJECT_NUMBER         = @PACKAGE_VERSION@
 PROJECT_BRIEF          =
 PROJECT_LOGO           =
 OUTPUT_DIRECTORY       = doxygen
@@ -97,10 +97,10 @@ WARN_LOGFILE           =
 #---------------------------------------------------------------------------
 # Configuration options related to the input files
 #---------------------------------------------------------------------------
-INPUT                  =
+INPUT                  = @top_srcdir@
 INPUT_ENCODING         = UTF-8
 FILE_PATTERNS          =
-RECURSIVE              = NO
+RECURSIVE              = YES
 EXCLUDE                =
 EXCLUDE_SYMLINKS       = NO
 EXCLUDE_PATTERNS       =
