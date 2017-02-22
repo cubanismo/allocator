@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2016-2017 NVIDIA CORPORATION.  All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -58,10 +58,26 @@
 #define VENDOR_INTEL                            0x00008086
 
 /*!
- * Opaque pointer to a device handle
+ * \defgroup objects
+ * @{
  */
-typedef struct device *device_t;
-#define DEVICE_NONE ((device_t)0)
+
+/*!
+ * An initialized device context.  This is the object type against which
+ * allocation requests can be made.
+ */
+typedef struct device device_t;
+#define DEVICE_NONE ((device_t *)0)
+
+/*!
+ * A memory allocation handle.  Returned by a successful allocation request.
+ */
+typedef struct allocation allocation_t;
+
+/*!
+ * @}
+ * End of the objects group
+ */
 
 /*!
  * \defgroup constraints
@@ -195,7 +211,7 @@ typedef struct usage_display {
  * it can specify DEVICE_NONE as the device.
  */
 typedef struct usage {
-    device_t dev;
+    device_t *dev;
     const usage_header_t *usage;
 } usage_t;
 

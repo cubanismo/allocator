@@ -20,31 +20,9 @@
  * SOFTWARE.
  */
 
-#ifndef __ALLOCATOR_ALLOCATOR_H__
-#define __ALLOCATOR_ALLOCATOR_H__
+#ifndef __SRC_DRIVER_MANAGER_H__
+#define __SRC_DRIVER_MANAGER_H__
 
-#include <allocator/common.h>
+extern driver_t *find_driver_for_fd(int fd);
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-/*!
- * \file Allocator constructs specific to allocator clients/applications.
- */
-
-/*!
- * Initialize a device context on the specified device file descriptor.
- */
-extern device_t *device_create(int dev_fd);
-
-/*!
- * Tear down a device context returned by dev_create().
- */
-extern void device_destroy(device_t *dev);
-
-#ifdef __cplusplus
-} /* extern "C" */
-#endif
-
-#endif /* __ALLOCATOR_ALLOCATOR_H__ */
+#endif /* __SRC_DRIVER_MANAGER_H__ */

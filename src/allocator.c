@@ -20,9 +20,25 @@
  * SOFTWARE.
  */
 
-#include "allocator/allocator.h"
+#include <stddef.h>
+#include <allocator/allocator.h>
+#include <allocator/driver.h>
+#include "driver_manager.h"
 
-void dummy(void)
+device_t *device_create(int dev_fd)
 {
+    driver_t *driver = find_driver_for_fd(dev_fd);
 
+    if (!driver) {
+        return NULL;
+    }
+
+    return driver->device_create_from_fd(driver, dev_fd);
+}
+
+void device_destroy(device_t *dev)
+{
+    if (dev) {
+        dev->destroy(dev);
+    }
 }
