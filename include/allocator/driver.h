@@ -40,6 +40,33 @@ typedef struct driver {
     unsigned int driver_interface_version;
 
     /*!
+     * Private data used by the driver implementation.
+     *
+     * Populated by the driver, if needed.  This value must never be used by
+     * the allocation library itself.
+     */
+    void *driver_private;
+
+    /*!
+     * Handle to the library containing the driver implementation referred to by
+     * this structure.
+     *
+     * Populated by the allocator library.  The allocator library will use this
+     * to unload the library after calling the destructor function.  This field
+     * should generally be ignored by the driver code.
+     */
+    void *lib_handle;
+
+    /*!
+     * Linked list of initialized drivers.
+     *
+     * Populated by the allocator library and used to maintain a list of all
+     * available drivers.  This field should generally be ignored by the driver
+     * code.
+     */
+    struct driver *next;
+
+    /*!
      * Driver destructor function, called by the allocator library before
      * unloading a driver.
      *
@@ -85,6 +112,14 @@ struct device {
     driver_t *driver;
 
     /*!
+     * Private data used by the device's driver implementation.
+     *
+     * Populated by the driver.  This value must never be used by the
+     * allocation library itself.
+     */
+    void *device_private;
+
+    /*!
      * Device destructor function.  Called when the application destroys a
      * device object.
      *
@@ -116,5 +151,20 @@ typedef int (*driver_init_func_t)(driver_t *drv);
  * Current driver interface version
  */
 #define DRIVER_INTERFACE_VERSION 1
+
+/*!
+ * Current driver json file major version
+ */
+#define JSON_FILE_VERSION_MAJOR 1
+
+/*!
+ * Current driver json file minor version
+ */
+#define JSON_FILE_VERSION_MINOR 0
+
+/*!
+ * Current driver json file micro version
+ */
+#define JSON_FILE_VERSION_MICRO 0
 
 #endif /* __ALLOCATOR_DRIVER_H__ */

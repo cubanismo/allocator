@@ -22,7 +22,7 @@ lib_LTLIBRARIES = liballocator.la
 
 liballocator_la_CFLAGS = -I$(top_srcdir)/include
 
-liballocator_la_LIBADD = $(MATH_LIBS)
+liballocator_la_LIBADD = $(MATH_LIBS) $(DL_LIBS)
 
 liballocator_la_SOURCES = allocator.c
 liballocator_la_SOURCES += driver_manager.c

@@ -32,6 +32,10 @@ AX_SEARCH_LIBS_OPT([floor], [m], [MATH_LIBS], [], [
     AC_MSG_ERROR([unable to find the floor() function])
 ])
 
+AX_SEARCH_LIBS_OPT([dlopen], [dl dld], [DL_LIBS], [], [
+    AC_MSG_ERROR([unable to find the dlopen() function])
+])
+
 if test -z "$DOXYGEN"; then
 	AC_MSG_WARN([Doxygen not found - documentation will not be built])
 fi
