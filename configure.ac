@@ -13,7 +13,7 @@ AX_CHECK_ENABLE_DEBUG(no, DEBUG)
 
 AC_USE_SYSTEM_EXTENSIONS
 
-AM_INIT_AUTOMAKE([1.11 foreign silent-rules])
+AM_INIT_AUTOMAKE([1.11 foreign silent-rules subdir-objects])
 AM_SILENT_RULES([yes])
 
 dnl Checks for programs.
@@ -27,6 +27,10 @@ AC_CHECK_PROGS([DOXYGEN], [doxygen])
 if test "x$ac_cv_prog_cc_c99" = xno; then
         AC_MSG_ERROR([Building liballocator requires a C99-enabled compiler])
 fi
+
+AX_SEARCH_LIBS_OPT([floor], [m], [MATH_LIBS], [], [
+    AC_MSG_ERROR([unable to find the floor() function])
+])
 
 if test -z "$DOXYGEN"; then
 	AC_MSG_WARN([Doxygen not found - documentation will not be built])
