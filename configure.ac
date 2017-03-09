@@ -36,6 +36,10 @@ AX_SEARCH_LIBS_OPT([dlopen], [dl dld], [DL_LIBS], [], [
     AC_MSG_ERROR([unable to find the dlopen() function])
 ])
 
+AC_CHECK_FUNC([strdup], [], [
+    AC_MSG_ERROR([The function strdup() is required and was not found.])
+])
+
 if test -z "$DOXYGEN"; then
 	AC_MSG_WARN([Doxygen not found - documentation will not be built])
 fi
@@ -44,6 +48,7 @@ AM_CONDITIONAL([HAVE_DOXYGEN], [test -n "$DOXYGEN"])
 AC_CONFIG_FILES([Makefile
                  src/Makefile
 		 include/Makefile
+		 tests/Makefile
 		 liballocator.pc])
 AM_COND_IF([HAVE_DOXYGEN],
 	   [AC_CONFIG_FILES([Doxyfile])])
