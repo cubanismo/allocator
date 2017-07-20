@@ -43,6 +43,27 @@ extern device_t *device_create(int dev_fd);
  */
 extern void device_destroy(device_t *dev);
 
+/*!
+ * Query device capabilities for a given assertion.
+ */
+extern int device_get_capabilities(device_t *dev,
+                                   const assertion_t *assert,
+                                   uint32_t num_uses,
+                                   const usage_t *uses,
+                                   uint32_t *num_capability_sets,
+                                   capability_set_t** capability_sets);
+
+/*!
+ * Compute a list of common capabilities by determining the compatible combination
+ * of two existing capability set lists.
+ */
+extern int derive_capabilities(uint32_t num_caps0,
+                               capability_set_t *caps0,
+                               uint32_t num_caps1,
+                               capability_set_t *caps1,
+                               uint32_t *num_capability_sets,
+                               capability_set_t** capability_sets);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

@@ -130,6 +130,17 @@ TODO I guess if we used dataformat, maybe the capabilities block simply
 becomes a dataformat block?  So a *Capabilities Set* is just a set of
 pairs of dataformat block plus corresponding `constraint_t` block?
 
+Constraint Merging
+------------------
+
+Constraint lists are joined by a merge operation.  Given two lists of
+constraints, merging them results in a new list with at least as many
+entries as the longer of the two input lists.  If a given constraint,
+identified by its name, is in only one of the two original lists, it is
+included verbatim in the resulting list.  If a constraint appears in
+both lists, the two constraint values are merged and only the resulting
+constraint is included in the merged list.
+
 Acknowledgments
 ----------------
 

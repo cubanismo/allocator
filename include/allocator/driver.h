@@ -126,6 +126,21 @@ struct device {
      * Populated by the driver.
      */
     void (*destroy)(device_t *dev);
+
+    /*!
+     * Query the capabilities and constraints of a device for a specified usage.
+     *
+     * Populated by the driver.
+     *
+     * Given an assertion and a list of uses, return the capabilities, if any,
+     * this device supports for the requested usage.
+     */
+    int (*get_capabilities)(device_t *dev,
+                            const assertion_t *assert,
+                            uint32_t num_uses,
+                            const usage_t *uses,
+                            uint32_t *num_capability_sets,
+                            capability_set_t **capability_sets);
 };
 
 /*!

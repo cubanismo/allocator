@@ -111,6 +111,7 @@ typedef struct constraint {
 #define CONSTRAINT_ADDRESS_ALIGNMENT                                0x00000000
 #define CONSTRAINT_PITCH_ALIGNMENT                                  0x00000001
 #define CONSTRAINT_MAX_PITCH                                        0x00000002
+#define CONSTRAINT_END                                              ((CONSTRAINT_MAX_PITCH) + 1)
 
 /*!
  * @}
