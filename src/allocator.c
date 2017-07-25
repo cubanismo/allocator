@@ -164,6 +164,33 @@ static int merge_constraints(uint32_t num_constraints0,
     return 0;
 }
 
+static int are_capabilities_compatible(const capability_header_t *cap0,
+                                       const capability_header_t *cap1)
+{
+    int compatible = 0;
+    const capability_header_t *tmp;
+    int iterations = 0;
+
+    for (int iterations = 0; iterations < 2; iterations++) {
+        if (cap0->vendor == 0) {
+            compatible |=
+                capabilities_compatible_func_table[cap0.name](cap0, cap1);
+        } else {
+            driver_t *driver = find_driver_for_fencor(cap0->vendor);
+
+            assert(driver);
+
+            compatible |= driver->capabilities_compatible(cap0, cap1);
+        }
+
+        tmp = cap0;
+        cap0 = cap1;
+        cap1 = tmp;
+    }
+
+    return compatible;
+}
+
 static int intersect_capabilities(uint32_t num_caps0,
                                   const capability_header_t *caps0,
                                   uint32_t num_caps1,
@@ -171,7 +198,23 @@ static int intersect_capabilities(uint32_t num_caps0,
                                   uint32_t *num_new_capabilities,
                                   capability_header_t **new_capabilities)
 {
-    return -1;
+    for (uint32_t i0 = 0; i0 < num_caps0 && !ret; i0++) {
+        uint32_t i1;
+
+        for (i1 = 0; i1 < num_caps1; i1++) {
+            if (!are_capabilities_compatible(&caps0[i0], caps1[i1])) {
+                return -1;
+            }
+        }
+    }
+    
+    // TODO: Great, everything is compatible, but what is the resulting list
+    // of capabilities?  The lists aren't necessarily equal or a superset of
+    // the other.  The intersection of them isn't necessarily meaningful, and
+    // the union of them isn't likely to be understood by any one vendor/
+    // allocator, so that can't be the result either.
+    
+    return 0;
 }
 
 int derive_capabilities(uint32_t num_caps0,
@@ -208,9 +251,7 @@ int derive_capabilities(uint32_t num_caps0,
             if (intersect_capabilities(caps0[i0].num_capabilities,
                                        caps0[i0].capabilities,
                                        caps1[i1].num_capabilities,
-                                       caps1[i1].capabilities,
-                                       &num_new_capabilities,
-                                       &new_capabilities)) {
+                                       caps1[i1].capabilities)) {
                 continue;
             }
 

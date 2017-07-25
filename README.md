@@ -141,6 +141,59 @@ included verbatim in the resulting list.  If a constraint appears in
 both lists, the two constraint values are merged and only the resulting
 constraint is included in the merged list.
 
+Capability Filtering
+--------------------
+
+As additive constructs, capability lists would naively be merged via
+intersection, but in practice the operation is much more complex.
+Unlike constraints, capability lists aren't malleable or divisible.  The
+capabilities in a give set may be interdependent and must be taken as-is
+or rejected entirely.  However, naively comparing two capability lists
+for equality to determine compatibility proves innadequate as well.
+
+Consider the case of two capability sets, one corresponding to a
+particular device or engine which enables use of a particular local
+cache, and another which corresponds to a separate engine or device
+without access to that and hence doesn't include the corresponding
+capability.  Assuming the device or engine corresponding to the set with
+access to the cache is capable of flushing the cache, the lack of
+support for that cache in the other set need not disqualify
+compatibiliy.  However, note the device or engine exposing the cache
+capability must take care to include a cache flush when when building a
+transition to a usage that involves other engines or other devices not
+capable of accessing the cache.
+
+An alternative design is to require exact set matches, expose the cache
+capability in both sets, and rely on the transition flushing logic to
+handle the transition.  However, this is infeasible when the caches are
+vendor specific, as they likely will be for all but the special CPU
+cache special case.  It is unlikely vendor A would know when to include
+the capability to use vendor B's on-chip or on-engine cache in its
+capability sets.
+
+This ability to match non-identical combined with the ability for
+drivers to report vendor-specific capabilities that are opaque to other
+vendors further complicates the capability intersection logic.  Consider
+again the above cache capability.  Assume it arises while intersecting
+capability sets from two vendors, A and B, where vendor A is the one
+reporting the cache capability.  Vendor A can trivially succeed
+intersecting the cache capability with any other capability, but Vendor
+B has no way to know if the opaque capability is compatible with any of
+its capabilities.  Because of this, each capability comparison must be
+broadcast to both vendors.  The final result is the logical OR of each
+vendor's result.
+
+Another alternative implementation is to simply dispatch intersection to
+to vendors directly, providing them with the sets in full.  This allows
+tests based on combinations of capabilities rather than the simple
+atomic comparisons enabled by the above design.  However, it moves a
+great deal of complexity form the common code to the drivers.
+Additionally, it could ideally be asserted that if such a combination
+comparison is necessary to determine compatibility, the capabilities in
+question are not in fact distinct atoms and instead should be combined
+into one, larger capability object.  Whether this assertion holds up in
+practice remains to be seen.
+
 Acknowledgments
 ----------------
 

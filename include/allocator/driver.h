@@ -40,6 +40,13 @@ typedef struct driver {
     unsigned int driver_interface_version;
 
     /*!
+     * The vendor ID associated with this driver instance
+     *
+     * Populated by the driver.
+     */
+    uint32_t vendor;
+
+    /*!
      * Private data used by the driver implementation.
      *
      * Populated by the driver, if needed.  This value must never be used by
