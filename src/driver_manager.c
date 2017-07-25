@@ -420,18 +420,3 @@ driver_t *find_driver_for_fd(int fd)
 
     return NULL;
 }
-
-driver_t *find_driver_for_vendor(uint32_t vendor)
-{
-    if (init_drivers() < 0) {
-        return NULL;
-    }
-
-    for (driver_t *driver = driver_list; driver; driver = driver->next) {
-        if (driver->vendor == vendor) {
-            return driver;
-        }
-    }
-
-    return NULL;
-}

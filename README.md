@@ -144,12 +144,30 @@ constraint is included in the merged list.
 Capability Filtering
 --------------------
 
-As additive constructs, capability lists would naively be merged via
-intersection, but in practice the operation is much more complex.
-Unlike constraints, capability lists aren't malleable or divisible.  The
-capabilities in a give set may be interdependent and must be taken as-is
-or rejected entirely.  However, naively comparing two capability lists
-for equality to determine compatibility proves innadequate as well.
+As additive constructs, capability lists are naively merged via
+intersection, with one caveat:  The first entry in any capability list
+is a required capability.  If the intersecion operation removes it, the
+resulting list is invalid.
+
+Capability comparison is also naive.  While capabilities themselves are
+opaque to the library in general, the library can compare them using
+memcmp().  Because compilers may introduce padding in structures to
+account for architectural alignment requirements or preferences, care
+must be taken to ensure these comparisons are reliable.  Specifically,
+all capability struct allocation must be done using calloc() or an
+equivalent function.
+
+Because capabilities besides the first in the list can be arbitrarily
+culled, there can be no hard dependencies between capabilities other
+than directly between the first and any individual subsequent list
+entry.
+
+An alternate design considered was to allow interdependence between
+capabilities in a given list, and allow any two sets of "compatible"
+capabilities to be merged into a single list, where compatibility could
+be certified by the vendor of either of the two capabilities in
+question.  This design initially seemed sound and is more powerful and
+flexible than the final design.
 
 Consider the case of two capability sets, one corresponding to a
 particular device or engine which enables use of a particular local
@@ -163,14 +181,6 @@ capability must take care to include a cache flush when when building a
 transition to a usage that involves other engines or other devices not
 capable of accessing the cache.
 
-An alternative design is to require exact set matches, expose the cache
-capability in both sets, and rely on the transition flushing logic to
-handle the transition.  However, this is infeasible when the caches are
-vendor specific, as they likely will be for all but the special CPU
-cache special case.  It is unlikely vendor A would know when to include
-the capability to use vendor B's on-chip or on-engine cache in its
-capability sets.
-
 This ability to match non-identical combined with the ability for
 drivers to report vendor-specific capabilities that are opaque to other
 vendors further complicates the capability intersection logic.  Consider
@@ -183,16 +193,32 @@ its capabilities.  Because of this, each capability comparison must be
 broadcast to both vendors.  The final result is the logical OR of each
 vendor's result.
 
+Despite it's apparent power, this alternative design proves unworkable
+though when considering how an allocation would be realized based on the
+resulting capability set.  Since the set would potentially contain more
+capabilities than any one vendor was familiar with, potentially even
+vendor-specific capabilities from multiple vendors, it's not clear any
+one vendor would know how to properly create an allocation encompassing
+all the requested capabilities.
+
+A variation of this alternative design is to require exact set matches,
+expose properties such as cache capabilities in both sets, and rely on
+the transition flushing logic to handle the transition.  However, this
+is infeasible when the caches are vendor specific, as they likely will
+be for all but the special CPU cache special case.  It is unlikely
+vendor A would know when to include the capability to use vendor B's on-
+chip or on-engine cache in its capability sets.
+
 Another alternative implementation is to simply dispatch intersection to
-to vendors directly, providing them with the sets in full.  This allows
-tests based on combinations of capabilities rather than the simple
-atomic comparisons enabled by the above design.  However, it moves a
-great deal of complexity form the common code to the drivers.
-Additionally, it could ideally be asserted that if such a combination
-comparison is necessary to determine compatibility, the capabilities in
-question are not in fact distinct atoms and instead should be combined
-into one, larger capability object.  Whether this assertion holds up in
-practice remains to be seen.
+application-chosen vendors directly, providing them with the sets in
+full.  This allows tests based on combinations of capabilities rather
+than the simple atomic comparisons enabled by the above design.
+However, it moves a great deal of complexity form the common code to the
+drivers.  Additionally, it could ideally be asserted that if such a
+combination comparison is necessary to determine compatibility, the
+capabilities in question are not in fact distinct atoms and instead
+should be combined into one, larger capability object.  Whether this
+assertion holds up in practice remains to be seen.
 
 Acknowledgments
 ----------------

@@ -22,6 +22,7 @@
 
 #include <stddef.h>
 #include <stdlib.h>
+#include <string.h>
 #include <assert.h>
 #include <allocator/allocator.h>
 #include <allocator/driver.h>
@@ -96,8 +97,6 @@ static int merge_constraints(uint32_t num_constraints0,
     k = 0;
 
     for (i = 0; i < num_constraints0; i++) {
-        int merged = 0;
-
         for (j = 0; j < num_constraints1; i++) {
             if (constraints0[i].name == constraints1[j].name) {
                 if (constraints0[i].name >=
@@ -117,12 +116,11 @@ static int merge_constraints(uint32_t num_constraints0,
 
                 common_constraints++;
 
-                merged = 1;
                 break;
             }
         }
 
-        if (merged == 0) {
+        if (j == num_constraints1) {
             (*new_constraints)[k++] = constraints0[i];
         }
     }
@@ -145,15 +143,13 @@ static int merge_constraints(uint32_t num_constraints0,
         *new_constraints = tmp_constraints;
 
         for (j = 0; j < num_constraints1; j++) {
-            int merged = 0;
             for (i = 0; i <  num_constraints0; i++) {
                 if (constraints1[j].name == constraints0[i].name) {
-                    merged = 1;
                     break;
                 }
             }
 
-            if (merged == 0) {
+            if (i == num_constraints0) {
                 (*new_constraints)[k++] = constraints1[j];
             }
         }
@@ -164,33 +160,45 @@ static int merge_constraints(uint32_t num_constraints0,
     return 0;
 }
 
-static int are_capabilities_compatible(const capability_header_t *cap0,
-                                       const capability_header_t *cap1)
+/*!
+ * Compare two individual capabilities for equivalence.
+ */
+static int compare_capabilities(const capability_header_t *cap0,
+                                const capability_header_t *cap1)
 {
-    int compatible = 0;
-    const capability_header_t *tmp;
-    int iterations = 0;
+    const int lengthDiff = (int)cap0->length_in_words -
+        (int)cap1->length_in_words;
 
-    for (int iterations = 0; iterations < 2; iterations++) {
-        if (cap0->vendor == 0) {
-            compatible |=
-                capabilities_compatible_func_table[cap0.name](cap0, cap1);
-        } else {
-            driver_t *driver = find_driver_for_fencor(cap0->vendor);
-
-            assert(driver);
-
-            compatible |= driver->capabilities_compatible(cap0, cap1);
-        }
-
-        tmp = cap0;
-        cap0 = cap1;
-        cap1 = tmp;
+    if (lengthDiff != 0) {
+        return lengthDiff;
     }
 
-    return compatible;
+    /*
+     * This works as long as no uninitialized padding data exists in the
+     * structs.  To ensure that, all capability headers * and their tail
+     * data need to be allocated using calloc.
+     */
+    return memcmp(cap0, cap1, cap0->length_in_words * sizeof(uint32_t));
 }
 
+/*!
+ * Generate the intersection of two lists of capabilities.
+ *
+ * Each capability can be included at most once in a given capability list.
+ *
+ * If a capability exist in only one of the two original lists, it will not be
+ * included in the final list.
+ *
+ * If a capability name exists in both lists but the two capabilities are not
+ * equivalent, they will not be included in the final list.  There is no merging
+ * or intersecting of capability values.
+ *
+ * Capability lists are generally unordered, but culling the first entry
+ * invalidates the list, causing the intersection operation to fail.
+ *
+ * This will allocate and return memory in *new_capabilities.  The caller is
+ * responsible for freeing this memory using free().
+ */
 static int intersect_capabilities(uint32_t num_caps0,
                                   const capability_header_t *caps0,
                                   uint32_t num_caps1,
@@ -198,25 +206,90 @@ static int intersect_capabilities(uint32_t num_caps0,
                                   uint32_t *num_new_capabilities,
                                   capability_header_t **new_capabilities)
 {
-    for (uint32_t i0 = 0; i0 < num_caps0 && !ret; i0++) {
+    const uint32_t max_new_caps = num_caps0 > num_caps1 ? num_caps1 : num_caps0;
+    capability_header_t *new_caps = NULL;
+    uint32_t num_new_caps = 0;
+
+    if ((num_caps0 < 1) || (num_caps1 < 1)) {
+        return -1;
+    }
+
+    /*
+     * The first capability is special, and culling it from either list results
+     * in an invalid list.
+     */
+    if (compare_capabilities(&caps0[0], &caps1[0])) {
+        return -1;
+    }
+
+    new_caps = (capability_header_t *)calloc(max_new_caps,
+                                             sizeof(capability_header_t));
+
+    if (!new_caps) {
+        return -1;
+    }
+
+    /* Insert the already-compared first capability in the new list. */
+    memcpy(&new_caps[num_new_caps++], &caps0[0],
+           caps0[0].length_in_words * sizeof(uint32_t));
+
+    for (uint32_t i0 = 1; i0 < num_caps0; i0++) {
         uint32_t i1;
 
-        for (i1 = 0; i1 < num_caps1; i1++) {
-            if (!are_capabilities_compatible(&caps0[i0], caps1[i1])) {
-                return -1;
+        for (i1 = i0; i1 < num_caps1; i1++) {
+            if (compare_capabilities(&caps0[i0], &caps1[i1])) {
+                continue;
+            } else {
+                break;
             }
         }
+
+        if (i1 < num_caps1) {
+            /*
+             * An equivalent capability was found.  Include this capability in
+             * the new list.
+             */
+            memcpy(&new_caps[num_new_caps++], &caps0[i0],
+                   caps0[i0].length_in_words * sizeof(uint32_t));
+        }
     }
-    
-    // TODO: Great, everything is compatible, but what is the resulting list
-    // of capabilities?  The lists aren't necessarily equal or a superset of
-    // the other.  The intersection of them isn't necessarily meaningful, and
-    // the union of them isn't likely to be understood by any one vendor/
-    // allocator, so that can't be the result either.
-    
+
+    assert(num_new_caps >= 1);
+    assert(num_new_caps <= max_new_caps);
+
+    *new_capabilities =
+        (capability_header_t *)realloc(new_caps,
+                                       num_new_caps *
+                                       sizeof(capability_header_t));
+
+    if (!*new_capabilities) {
+        /*
+         * Shrinking an allocation shouldn't fail, but if it somehow does just
+         * return the existing, slightly larger than necessary allocation.
+         */
+        *new_capabilities = new_caps;
+    }
+
+    *num_new_capabilities = num_new_caps;
+
     return 0;
 }
 
+/*!
+ * Given two lists of capability sets, find the subset of compatible sets.
+ *
+ * Capability sets are only partially mutable.  This function attempts to
+ * merge each capability set in caps0[] against each capability set in
+ * caps1[] by merging the two sets' constraints and intersecting their
+ * capabilities.  Constraint list and capability list merging is defined
+ * by the helper functions \ref merge_constraints() and
+ * \ref intersect_capabilities().
+ *
+ * This function will allocate new memory to store a list of capability
+ * sets and return it in *capability_sets, and the capability sets
+ * themselves will be allocated as well.  It is the callers responsibility
+ * to free this memory using free().
+ */
 int derive_capabilities(uint32_t num_caps0,
                         capability_set_t *caps0,
                         uint32_t num_caps1,
@@ -251,7 +324,9 @@ int derive_capabilities(uint32_t num_caps0,
             if (intersect_capabilities(caps0[i0].num_capabilities,
                                        caps0[i0].capabilities,
                                        caps1[i1].num_capabilities,
-                                       caps1[i1].capabilities)) {
+                                       caps1[i1].capabilities,
+                                       &num_new_capabilities,
+                                       &new_capabilities)) {
                 continue;
             }
 
