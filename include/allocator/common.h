@@ -165,7 +165,7 @@ typedef struct capability_set {
     uint32_t num_constraints;
     uint32_t num_capabilities;
     const constraint_t *constraints;
-    const capability_header_t *capabilities;
+    const capability_header_t *const *capabilities;
 } capability_set_t;
 
 /*!

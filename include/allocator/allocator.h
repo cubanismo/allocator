@@ -58,9 +58,9 @@ extern int device_get_capabilities(device_t *dev,
  * of two existing capability set lists.
  */
 extern int derive_capabilities(uint32_t num_caps0,
-                               capability_set_t *caps0,
+                               const capability_set_t *caps0,
                                uint32_t num_caps1,
-                               capability_set_t *caps1,
+                               const capability_set_t *caps1,
                                uint32_t *num_capability_sets,
                                capability_set_t** capability_sets);
 

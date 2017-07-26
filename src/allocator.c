@@ -200,14 +200,14 @@ static int compare_capabilities(const capability_header_t *cap0,
  * responsible for freeing this memory using free().
  */
 static int intersect_capabilities(uint32_t num_caps0,
-                                  const capability_header_t *caps0,
+                                  const capability_header_t *const *caps0,
                                   uint32_t num_caps1,
-                                  const capability_header_t *caps1,
+                                  const capability_header_t *const *caps1,
                                   uint32_t *num_new_capabilities,
-                                  capability_header_t **new_capabilities)
+                                  capability_header_t ***new_capabilities)
 {
     const uint32_t max_new_caps = num_caps0 > num_caps1 ? num_caps1 : num_caps0;
-    capability_header_t *new_caps = NULL;
+    capability_header_t **new_caps = NULL;
     uint32_t num_new_caps = 0;
 
     if ((num_caps0 < 1) || (num_caps1 < 1)) {
@@ -218,26 +218,26 @@ static int intersect_capabilities(uint32_t num_caps0,
      * The first capability is special, and culling it from either list results
      * in an invalid list.
      */
-    if (compare_capabilities(&caps0[0], &caps1[0])) {
+    if (compare_capabilities(caps0[0], caps1[0])) {
         return -1;
     }
 
-    new_caps = (capability_header_t *)calloc(max_new_caps,
-                                             sizeof(capability_header_t));
+    new_caps = (capability_header_t **)calloc(max_new_caps,
+                                              sizeof(capability_header_t *));
 
     if (!new_caps) {
         return -1;
     }
 
     /* Insert the already-compared first capability in the new list. */
-    memcpy(&new_caps[num_new_caps++], &caps0[0],
-           caps0[0].length_in_words * sizeof(uint32_t));
+    memcpy(new_caps[num_new_caps++], caps0[0],
+           caps0[0]->length_in_words * sizeof(uint32_t));
 
     for (uint32_t i0 = 1; i0 < num_caps0; i0++) {
         uint32_t i1;
 
         for (i1 = i0; i1 < num_caps1; i1++) {
-            if (compare_capabilities(&caps0[i0], &caps1[i1])) {
+            if (compare_capabilities(caps0[i0], caps1[i1])) {
                 continue;
             } else {
                 break;
@@ -249,8 +249,20 @@ static int intersect_capabilities(uint32_t num_caps0,
              * An equivalent capability was found.  Include this capability in
              * the new list.
              */
-            memcpy(&new_caps[num_new_caps++], &caps0[i0],
-                   caps0[i0].length_in_words * sizeof(uint32_t));
+            size_t cap_size = caps0[i0]->length_in_words * sizeof(uint32_t);
+
+            new_caps[num_new_caps] = (capability_header_t *)calloc(1, cap_size);
+
+            if (!new_caps[num_new_caps]) {
+                for (i1 = 0; i1 < num_new_caps; i1++) {
+                    free(new_caps[i1]);
+                }
+
+                free(new_caps);
+                return -1;
+            }
+
+            memcpy(new_caps[num_new_caps++], caps0[i0], cap_size);
         }
     }
 
@@ -258,9 +270,9 @@ static int intersect_capabilities(uint32_t num_caps0,
     assert(num_new_caps <= max_new_caps);
 
     *new_capabilities =
-        (capability_header_t *)realloc(new_caps,
-                                       num_new_caps *
-                                       sizeof(capability_header_t));
+        (capability_header_t **)realloc(new_caps,
+                                        num_new_caps *
+                                        sizeof(capability_header_t *));
 
     if (!*new_capabilities) {
         /*
@@ -291,9 +303,9 @@ static int intersect_capabilities(uint32_t num_caps0,
  * to free this memory using free().
  */
 int derive_capabilities(uint32_t num_caps0,
-                        capability_set_t *caps0,
+                        const capability_set_t *caps0,
                         uint32_t num_caps1,
-                        capability_set_t *caps1,
+                        const capability_set_t *caps1,
                         uint32_t *num_capability_sets,
                         capability_set_t **capability_sets)
 {
@@ -309,7 +321,7 @@ int derive_capabilities(uint32_t num_caps0,
             uint32_t num_new_constraints;
             constraint_t *new_constraints;
             uint32_t num_new_capabilities;
-            capability_header_t *new_capabilities;
+            capability_header_t **new_capabilities;
             capability_set_t *temp_caps;
 
             if (merge_constraints(caps0[i0].num_constraints,
@@ -349,7 +361,7 @@ int derive_capabilities(uint32_t num_caps0,
             new_capability_sets[num_new_capability_sets].num_capabilities =
                 num_new_capabilities;
             new_capability_sets[num_new_capability_sets].capabilities =
-                new_capabilities;
+                (const capability_header_t *const *)new_capabilities;
             num_new_capability_sets++;
         }
     }
