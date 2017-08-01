@@ -39,10 +39,9 @@ test_headers.timestamp: $(add_prefix $(top_srcdir),$(HEADERS_TO_TEST))
 		echo '"' >> .test.c; \
 	done
 	$(CC) -I$(top_srcdir)/include -Wall -Werror -c .test.c -o .test.o
-	rm .test.o
+	rm .test.o .test.c
 	echo Timestamp > test_headers.timestamp
 
-#rm .test.o .test.c
 if HAVE_DOXYGEN
 LOCAL_TARGETS += doxygen/doxygen.timestamp
 LOCAL_CLEAN += $(top_builddir)/doxygen
