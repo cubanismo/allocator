@@ -35,6 +35,7 @@ AM_CONDITIONAL([HAVE_DOXYGEN], [test -n "$DOXYGEN"])
 
 AC_CONFIG_FILES([Makefile
                  src/Makefile
+		 include/Makefile
 		 liballocator.pc])
 AM_COND_IF([HAVE_DOXYGEN],
 	   [AC_CONFIG_FILES([Doxyfile])])
