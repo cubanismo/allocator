@@ -145,24 +145,28 @@ Capability Filtering
 --------------------
 
 As additive constructs, capability lists are naively merged via
-intersection, with one caveat:  The first entry in any capability list
-is a required capability.  If the intersecion operation removes it, the
-resulting list is invalid.
+intersection, with one caveat:  Any entry in a list can be marked as
+"required", meaning if the intersection operation removes it from the
+resulting list, the resulting list is invalid and the intersection
+operation has failed.
 
 Capability comparison is also naive.  While capabilities themselves are
-opaque to the library in general, the library can compare them using
-memcmp().  Because compilers may introduce padding in structures to
-account for architectural alignment requirements or preferences, care
-must be taken to ensure these comparisons are reliable.  Specifically,
-all capability struct allocation must be done using calloc() or an
+opaque to the library beyond their header content, the library can
+compare the non-header content using memcmp().  Note, however, that the
+above-mentioned "required" flag is ignored when comparing capabilities and
+set if true in either of the matching capabilities in the resulting list,
+since its value should not alter an allocation operation.  Because
+compilers may introduce padding in structures to account for architectural
+alignment requirements or preferences, care must be taken to ensure memcpy-
+based comparisons are reliable despite this invisible data.  Consequently,
+all capability struct allocation should be done using calloc() or an
 equivalent function.
 
-Because capabilities besides the first in the list can be arbitrarily
-culled, there can be no hard dependencies between capabilities other
-than directly between the first and any individual subsequent list
-entry.
+Because capabilities in the list can be arbitrarily culled, all hard
+dependencies between capabilities in a given list must be expressible using
+the simple "required" flag.
 
-An alternate design considered was to allow interdependence between
+An alternate design considered was to allow general interdependence between
 capabilities in a given list, and allow any two sets of "compatible"
 capabilities to be merged into a single list, where compatibility could
 be certified by the vendor of either of the two capabilities in

@@ -166,11 +166,24 @@ static int merge_constraints(uint32_t num_constraints0,
 static int compare_capabilities(const capability_header_t *cap0,
                                 const capability_header_t *cap1)
 {
-    const int lengthDiff = (int)cap0->length_in_words -
-        (int)cap1->length_in_words;
+    int diff = (int)cap0->common.length_in_words -
+        (int)cap1->common.length_in_words;
 
-    if (lengthDiff != 0) {
-        return lengthDiff;
+    if (diff != 0) {
+        return diff;
+    }
+
+    /*
+     * Compare the header manually, so the "required" field can be ignored.
+     *
+     * TODO: Is ignoring the required field necessary and desirable?
+     */
+    diff = memcmp(&cap0->common,
+                  &cap1->common,
+                  sizeof(cap0->common));
+
+    if (diff != 0) {
+        return diff;
     }
 
     /*
@@ -178,7 +191,23 @@ static int compare_capabilities(const capability_header_t *cap0,
      * structs.  To ensure that, all capability headers * and their tail
      * data need to be allocated using calloc.
      */
-    return memcmp(cap0, cap1, cap0->length_in_words * sizeof(uint32_t));
+    return memcmp(&cap0[1],
+                  &cap1[1],
+                  cap0->common.length_in_words * sizeof(uint32_t));
+}
+
+/*!
+ * Helper function to deep-free an array of capabilities.
+ */
+static void free_capabilities(uint32_t num_caps, capability_header_t **caps)
+{
+    uint32_t i;
+
+    for (i = 0; i < num_caps; i++) {
+        free(caps[i]);
+    }
+
+    free(caps);
 }
 
 /*!
@@ -193,7 +222,7 @@ static int compare_capabilities(const capability_header_t *cap0,
  * equivalent, they will not be included in the final list.  There is no merging
  * or intersecting of capability values.
  *
- * Capability lists are generally unordered, but culling the first entry
+ * Capability lists are unordered.  Culling a capability marked as required
  * invalidates the list, causing the intersection operation to fail.
  *
  * This will allocate and return memory in *new_capabilities.  The caller is
@@ -207,39 +236,37 @@ static int intersect_capabilities(uint32_t num_caps0,
                                   capability_header_t ***new_capabilities)
 {
     const uint32_t max_new_caps = num_caps0 > num_caps1 ? num_caps1 : num_caps0;
+    int *matched_caps1 = NULL;
     capability_header_t **new_caps = NULL;
     uint32_t num_new_caps = 0;
+    uint32_t i0, i1;
+
 
     if ((num_caps0 < 1) || (num_caps1 < 1)) {
         return -1;
     }
 
-    /*
-     * The first capability is special, and culling it from either list results
-     * in an invalid list.
-     */
-    if (compare_capabilities(caps0[0], caps1[0])) {
-        return -1;
-    }
-
     new_caps = (capability_header_t **)calloc(max_new_caps,
                                               sizeof(capability_header_t *));
+    matched_caps1 = calloc(num_caps1, sizeof(*matched_caps1));
 
-    if (!new_caps) {
+    if (!new_caps || !matched_caps1) {
+        free(new_caps);
+        free(matched_caps1);
         return -1;
     }
 
-    /* Insert the already-compared first capability in the new list. */
-    memcpy(new_caps[num_new_caps++], caps0[0],
-           caps0[0]->length_in_words * sizeof(uint32_t));
+    for (uint32_t i0 = 0; i0 < num_caps0; i0++) {
+        int required = 0;
 
-    for (uint32_t i0 = 1; i0 < num_caps0; i0++) {
-        uint32_t i1;
-
-        for (i1 = i0; i1 < num_caps1; i1++) {
+        for (i1 = 0; i1 < num_caps1; i1++) {
             if (compare_capabilities(caps0[i0], caps1[i1])) {
                 continue;
             } else {
+                /* Capabilities should never be duplicated in either list */
+                assert(matched_caps1[i1] == 0);
+                matched_caps1[i1] = 1;
+                required = caps1[i1]->required;
                 break;
             }
         }
@@ -249,20 +276,38 @@ static int intersect_capabilities(uint32_t num_caps0,
              * An equivalent capability was found.  Include this capability in
              * the new list.
              */
-            size_t cap_size = caps0[i0]->length_in_words * sizeof(uint32_t);
+            size_t cap_size = caps0[i0]->common.length_in_words *
+                sizeof(uint32_t);
 
             new_caps[num_new_caps] = (capability_header_t *)calloc(1, cap_size);
 
             if (!new_caps[num_new_caps]) {
-                for (i1 = 0; i1 < num_new_caps; i1++) {
-                    free(new_caps[i1]);
-                }
-
-                free(new_caps);
+                free_capabilities(num_new_caps, new_caps);
+                free(matched_caps1);
                 return -1;
             }
 
-            memcpy(new_caps[num_new_caps++], caps0[i0], cap_size);
+            memcpy(new_caps[num_new_caps], caps0[i0], cap_size);
+            new_caps[num_new_caps++]->required |= required;
+        } else if (caps0[i0]->required) {
+            free_capabilities(num_new_caps, new_caps);
+            free(matched_caps1);
+
+            return -1;
+        }
+    }
+
+    for (i1 = 0; i1 < num_caps1; i1++) {
+        if ((matched_caps1[i1] == 0) && caps1[i1]->required) {
+            /*
+             * A required capability from caps1 was not included in the
+             * intersected list.  The resulting list is therefore invalid from
+             * the point of view of the generator of the list caps1, so the
+             * intersection fails.
+             */
+            free_capabilities(num_new_caps, new_caps);
+            free(matched_caps1);
+            return -1;
         }
     }
 
@@ -283,6 +328,8 @@ static int intersect_capabilities(uint32_t num_caps0,
     }
 
     *num_new_capabilities = num_new_caps;
+
+    free(matched_caps1);
 
     return 0;
 }

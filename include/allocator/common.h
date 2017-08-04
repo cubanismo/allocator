@@ -132,7 +132,22 @@ typedef struct header {
  * @{
  */
 
-typedef struct header capability_header_t;
+/*!
+ * Capabilities need an additional "required" field so they subclass header_t
+ *
+ * Note common_header::length_in_words does not include any bytes in the
+ * defined header, meaning the "required" field is not included in
+ * length_in_words.
+ */
+typedef struct capability_header {
+    header_t common;
+    
+    /*!
+     * If non-zero, removing this field via capability list intersection causes
+     * the intersection operation to fail.
+     */
+    int8_t required;
+} capability_header_t;
 
 /*!
  * The ability to represent 2D images using pitch x height pixel layout.
