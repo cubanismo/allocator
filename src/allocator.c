@@ -87,7 +87,7 @@ static int merge_constraints(uint32_t num_constraints0,
     int res;
     uint32_t i, j, k, common_constraints;
 
-    *new_constraints = malloc(sizeof((*new_constraints)[0]) * num_constraints0);
+    *new_constraints = calloc(num_constraints0, sizeof((*new_constraints)[0]));
 
     if (!*new_constraints) {
         return -1;
@@ -97,7 +97,7 @@ static int merge_constraints(uint32_t num_constraints0,
     k = 0;
 
     for (i = 0; i < num_constraints0; i++) {
-        for (j = 0; j < num_constraints1; i++) {
+        for (j = 0; j < num_constraints1; j++) {
             if (constraints0[i].name == constraints1[j].name) {
                 if (constraints0[i].name >=
                     ARRAY_LEN(constraint_merge_func_table)) {
@@ -121,7 +121,8 @@ static int merge_constraints(uint32_t num_constraints0,
         }
 
         if (j == num_constraints1) {
-            (*new_constraints)[k++] = constraints0[i];
+            memcpy(&(*new_constraints)[k++], &constraints0[i],
+                   sizeof(constraints0[i]));
         }
     }
 
@@ -150,7 +151,8 @@ static int merge_constraints(uint32_t num_constraints0,
             }
 
             if (i == num_constraints0) {
-                (*new_constraints)[k++] = constraints1[j];
+                memcpy(&(*new_constraints)[k++], &constraints1[j],
+                       sizeof(constraints1[j]));
             }
         }
     }
@@ -276,8 +278,8 @@ static int intersect_capabilities(uint32_t num_caps0,
              * An equivalent capability was found.  Include this capability in
              * the new list.
              */
-            size_t cap_size = caps0[i0]->common.length_in_words *
-                sizeof(uint32_t);
+            size_t cap_size = sizeof(*caps0[i0]) +
+                caps0[i0]->common.length_in_words * sizeof(uint32_t);
 
             new_caps[num_new_caps] = (capability_header_t *)calloc(1, cap_size);
 
@@ -391,7 +393,7 @@ int derive_capabilities(uint32_t num_caps0,
 
             temp_caps = realloc(new_capability_sets,
                                 sizeof(*new_capability_sets) *
-                                num_new_capability_sets + 1);
+                                (num_new_capability_sets + 1));
 
             if (!temp_caps) {
                 free(new_capability_sets);

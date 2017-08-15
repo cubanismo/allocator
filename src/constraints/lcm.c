@@ -26,6 +26,10 @@ static uint32_t gcd(uint32_t m, uint32_t n)
 {
     uint32_t temp;
 
+    if (m == n) {
+        return m;
+    }
+
     while (m && n) {
         temp = m;
         m = m % n;
