@@ -28,19 +28,10 @@
 #include <getopt.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdarg.h>
 #include <stdio.h>
 #include <allocator/allocator.h>
 
-static void FAIL(const char *fmt, ...)
-{
-    va_list ap;
-    va_start(ap, fmt);
-    vfprintf(stderr, fmt, ap);
-    va_end(ap);
-    
-    exit(1);
-}
+#include "test_utils.h"
 
 static void usage(void)
 {
