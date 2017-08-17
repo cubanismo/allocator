@@ -47,7 +47,7 @@ extern void device_destroy(device_t *dev);
  * Query device capabilities for a given assertion.
  */
 extern int device_get_capabilities(device_t *dev,
-                                   const assertion_t *assert,
+                                   const assertion_t *assertion,
                                    uint32_t num_uses,
                                    const usage_t *uses,
                                    uint32_t *num_capability_sets,
@@ -80,6 +80,21 @@ extern int device_get_assertion_hints(device_t *dev,
                                       const usage_t *uses,
                                       uint32_t *num_hints,
                                       assertion_hint_t **hints);
+
+/*!
+ * Create an allocation conforming to an assertion and capability set on the
+ * specified device.
+ */
+extern int device_create_allocation(device_t *dev,
+                                    const assertion_t *assertion,
+                                    const capability_set_t *capability_set,
+                                    allocation_t **allocation);
+
+/*!
+ * Destroy an allocation previously created on the specified device.
+ */
+extern void device_destroy_allocation(device_t *dev,
+                                      allocation_t *allocation);
 
 #ifdef __cplusplus
 } /* extern "C" */

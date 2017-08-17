@@ -443,3 +443,16 @@ int device_get_assertion_hints(device_t *dev,
                                     num_hints,
                                     hints);
 }
+
+int device_create_allocation(device_t *dev,
+                             const assertion_t *assertion,
+                             const capability_set_t *capability_set,
+                             allocation_t **allocation)
+{
+    return dev->create_allocation(dev, assertion, capability_set, allocation);
+}
+
+void device_destroy_allocation(device_t *dev, allocation_t *allocation)
+{
+    dev->destroy_allocation(dev, allocation);
+}

@@ -136,7 +136,7 @@ struct device {
      * this device supports for the requested usage.
      */
     int (*get_capabilities)(device_t *dev,
-                            const assertion_t *assert,
+                            const assertion_t *assertion,
                             uint32_t num_uses,
                             const usage_t *uses,
                             uint32_t *num_capability_sets,
@@ -155,6 +155,64 @@ struct device {
                                const usage_t *uses,
                                uint32_t *num_hints,
                                assertion_hint_t **hints);
+
+    /*!
+     * Create an allocation given an assertion and capability set.
+     *
+     * Populated by the driver.
+     *
+     * Given an assertion and a single capability set, realize an allocation.
+     *
+     * The capability set must previously have been retrieved from this device
+     * using get_capabilities() or be derived from a capability set returned
+     * from the same function.  The capability will no necessarily originate
+     * from this device instance or library instance.  It could have come from
+     * another process or some other serialized form, but in such cases, it
+     * must be equivalent to one that could be queried from this driver
+     * instance.
+     */
+    int (*create_allocation)(device_t *dev,
+                             const assertion_t *assertion,
+                             const capability_set_t *capability_set,
+                             allocation_t **allocation);
+
+    /*!
+     * Destroy an allocation previously returned by create_allocate().
+     *
+     * Populated by the driver.
+     */
+    void (*destroy_allocation)(device_t *dev, allocation_t *allocation);
+};
+
+/*!
+ * Structure representing a device memory allocation within the allocator
+ * library and its driver backends.
+ */
+struct allocation {
+    /*!
+     * Private data used by the driver of the device that created the
+     * allocation.
+     *
+     * This value should be populated by the driver if needed, and must never
+     * be used by the allocation library itself.
+     */
+    void *allocation_private;
+
+    /*!
+     * The exact capability set used to realize this allocation.  Serves as
+     * metadata describing the allocation properties in an exportable form.
+     *
+     * Populated and freed by the allocating driver.
+     */
+    const capability_set_t *capability_set;
+
+    /*!
+     * Exact size of the allocation.  Should include any rounding done by
+     * vendor kernel or userspace drivers.
+     *
+     * Populated by the allocating driver.
+     */
+    uint64_t size;
 };
 
 /*!
