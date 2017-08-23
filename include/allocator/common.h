@@ -141,7 +141,7 @@ typedef struct header {
  */
 typedef struct capability_header {
     header_t common;
-    
+
     /*!
      * If non-zero, removing this field via capability list intersection causes
      * the intersection operation to fail.
