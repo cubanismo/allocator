@@ -64,6 +64,23 @@ extern int derive_capabilities(uint32_t num_caps0,
                                uint32_t *num_capability_sets,
                                capability_set_t** capability_sets);
 
+/*!
+ * Query device assertion hints for a given usage
+ *
+ * Returns both the number of hints <num_hints> and a malloc'ed array of hints
+ * <hints>.
+ *
+ * The caller is responsible of freeing the memory pointed by <hints>:
+ *
+ *     free((void *)((*hints)->formats));
+ *     free((void *)(*hints));
+ */
+extern int device_get_assertion_hints(device_t *dev,
+                                      uint32_t num_uses,
+                                      const usage_t *uses,
+                                      uint32_t *num_hints,
+                                      assertion_hint_t **hints);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

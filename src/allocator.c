@@ -420,3 +420,26 @@ int derive_capabilities(uint32_t num_caps0,
 
     return 0;
 }
+
+/*!
+ * Given a list of uses, returns a list of assertion hints.
+ *
+ * An application can use the returned hints to tweak its requirements to fall
+ * within valid and supported ranges.
+ *
+ * This function will allocate new memory to store a list of assertion hints and
+ * return it in *hints.  It is the callers responsibility to free this memory
+ * using free().
+ */
+int device_get_assertion_hints(device_t *dev,
+                               uint32_t num_uses,
+                               const usage_t *uses,
+                               uint32_t *num_hints,
+                               assertion_hint_t **hints)
+{
+    return dev->get_assertion_hints(dev,
+                                    num_uses,
+                                    uses,
+                                    num_hints,
+                                    hints);
+}

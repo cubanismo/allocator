@@ -271,6 +271,34 @@ typedef struct assertion {
 } assertion_t;
 
 /*!
+ * Assertion hints can be queried by applications so that they know what
+ * assertion values would be supported/recommended for a surface allocation
+ * given a certain usage.
+ *
+ * Depending on the specific assertion value, hints may be presented as a range
+ * (e.g. max width/height) or a list of supported values (e.g. formats).
+ *
+ * Assertion hints are read-only structures
+ */
+typedef struct assertion_hint {
+    /*! Surface width limits */
+    const uint32_t max_width;
+
+    /*! Surface height limits */
+    const uint32_t max_height;
+
+    /*! List of valid surface pixel formats
+     *
+     * TODO: Non-consensus!  Decide if this is Khronos data format or fourcc
+     */
+    const uint32_t num_formats;
+    const uint32_t * const formats;
+
+    /*! For extended assertion hints */
+    const void * const ext;
+} assertion_hint_t;
+
+/*!
  * @}
  * End of the assertions group
  */

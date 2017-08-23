@@ -141,6 +141,20 @@ struct device {
                             const usage_t *uses,
                             uint32_t *num_capability_sets,
                             capability_set_t **capability_sets);
+
+    /*!
+     * Query the assertion hints of a device for a specified usage.
+     *
+     * Populated by the driver.
+     *
+     * Given a list of uses, return a list of assertion hints, if any,
+     * this device supports for the requested usage.
+     */
+    int (*get_assertion_hints)(device_t *dev,
+                               uint32_t num_uses,
+                               const usage_t *uses,
+                               uint32_t *num_hints,
+                               assertion_hint_t **hints);
 };
 
 /*!
