@@ -18,3 +18,8 @@ Makefile
 Makefile.in
 *.o
 *.so
+*.dirstamp
+*.timestamp
+tests/capability_merging
+tests/device_alloc
+liballocator-0.0.1.tar.gz
