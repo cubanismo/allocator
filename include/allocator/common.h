@@ -259,7 +259,7 @@ typedef struct assertion {
 
     /*! Required surface pixel format.
      *
-     * TODO: Non-concensus!  Decide if this is Khronos data format or fourcc
+     * TODO: Non-consensus!  Decide if this is Khronos data format or fourcc
      */
     const uint32_t *format;
 
