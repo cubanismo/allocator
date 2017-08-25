@@ -37,6 +37,17 @@ void FAIL(const char *fmt, ...)
     exit(1);
 }
 
+void free_assertion_hints(uint32_t num_hints, assertion_hint_t *hints)
+{
+    uint32_t h;
+
+    for (h = 0; h < num_hints; h++) {
+        free((void *)hints[h].formats);
+    }
+
+    free(hints);
+}
+
 void free_capability_sets(uint32_t num_sets, capability_set_t *sets)
 {
     uint32_t s;

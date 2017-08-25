@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
         {NULL, 0, NULL, 0}
     };
 
-    static const assertion_t assertion = {
+    static assertion_t assertion = {
         256,            /* width */
         256,            /* height */
         NULL,           /* format */
@@ -66,6 +66,9 @@ int main(int argc, char *argv[])
         &texture_usage.header   /* usage */
     };
     static const uint32_t num_uses = 1;
+
+    uint32_t num_assertion_hints = 0;
+    assertion_hint_t *assertion_hints;
 
     uint32_t *num_capability_sets;
     capability_set_t **capability_sets;
@@ -138,6 +141,20 @@ int main(int argc, char *argv[])
         }
 
         uses.dev = devs[i];
+
+        /* Query assertion hints and use maximum surface size reported */
+        if (device_get_assertion_hints(devs[i], num_uses, &uses,
+                                       &num_assertion_hints,
+                                       &assertion_hints) ||
+            (num_assertion_hints == 0)) {
+            FAIL("Couldn't get assertion hints for given usage from "
+                 "device %zd\n", i);
+        }
+
+        assertion.width = assertion_hints[0].max_width;
+        assertion.height = assertion_hints[0].max_height;
+
+        free_assertion_hints(num_assertion_hints, assertion_hints);
 
         /* Query capabilities for a common usage case from the device */
         if (device_get_capabilities(devs[i], &assertion, num_uses, &uses,
