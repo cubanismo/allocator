@@ -22,4 +22,5 @@ Makefile.in
 *.timestamp
 tests/capability_merging
 tests/device_alloc
+tests/create_allocation
 liballocator-0.0.1.tar.gz

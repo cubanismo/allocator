@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-bin_PROGRAMS = capability_merging device_alloc
+bin_PROGRAMS = capability_merging device_alloc create_allocation
 
 capability_merging_CFLAGS = -I$(top_srcdir)/include
 capability_merging_SOURCES = capability_merging.c test_utils.c
@@ -28,3 +28,6 @@ device_alloc_CFLAGS = -I$(top_srcdir)/include
 device_alloc_SOURCES = device_alloc.c test_utils.c
 device_alloc_LDADD = $(top_builddir)/src/liballocator.la
 
+create_allocation_CFLAGS = -I$(top_srcdir)/include
+create_allocation_SOURCES = create_allocation.c test_utils.c
+create_allocation_LDADD = $(top_builddir)/src/liballocator.la
