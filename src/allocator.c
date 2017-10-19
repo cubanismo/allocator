@@ -456,3 +456,141 @@ void device_destroy_allocation(device_t *dev, allocation_t *allocation)
 {
     dev->destroy_allocation(dev, allocation);
 }
+
+int serialize_capability_set(const capability_set_t *set,
+                             size_t *data_size,
+                             void **data)
+{
+    size_t size = 0;
+    unsigned char *d = NULL;
+    uint32_t i;
+
+    size += sizeof(set->num_constraints);
+    size += sizeof(set->num_capabilities);
+
+    /* constraints are fixed-size objects */
+    size += set->num_constraints * sizeof(set->constraints[0]);
+
+    for (i = 0; i < set->num_capabilities; i++) {
+        /* length_in_words does not include the size of the capability header */
+        size += sizeof(*set->capabilities[i]);
+
+        /* Add in the size of the post-header capability content. */
+        size += set->capabilities[i]->common.length_in_words * sizeof(uint32_t);
+    }
+
+    d = malloc(size);
+
+    if (!d) {
+        return -1;
+    }
+
+    *data = d;
+    *data_size = size;
+
+#define SERIALIZE(src, len) \
+    assert(((d + (len)) - (unsigned char *)*data) <= size); \
+    memcpy(d, (src), (len)); \
+    d += (len)
+
+    SERIALIZE(&set->num_constraints, sizeof(set->num_constraints));
+    SERIALIZE(&set->num_capabilities, sizeof(set->num_capabilities));
+    for (i = 0; i < set->num_constraints; i++) {
+        SERIALIZE(&set->constraints[i], sizeof(set->constraints[i]));
+    }
+
+    for (i = 0; i < set->num_capabilities; i++) {
+        size_t cap_size = sizeof(set->capabilities[i]) +
+            set->capabilities[i]->common.length_in_words * sizeof(uint32_t);
+
+        SERIALIZE(set->capabilities[i], cap_size);
+    }
+
+#undef SERIALIZE
+
+    return 0;
+}
+
+int deserialize_capability_set(size_t data_size,
+                               const void *data,
+                               capability_set_t **capability_set)
+{
+    const unsigned char *d = data;
+    constraint_t *constraints = NULL;
+    capability_header_t **capabilities = NULL;
+    uint32_t i;
+
+    capability_set_t *set = calloc(1, sizeof(capability_set_t));
+
+    if (!set) {
+        goto fail;
+    }
+
+#define PEEK_DESERIALIZE(dst, size) \
+    if (((d + size) - (const unsigned char *)data) > data_size) goto fail; \
+    memcpy((dst), d, (size))
+
+#define DESERIALIZE(dst, size) \
+    PEEK_DESERIALIZE((dst), (size)); \
+    d += (size)
+
+    DESERIALIZE(&set->num_constraints, sizeof(set->num_constraints));
+    DESERIALIZE(&set->num_capabilities, sizeof(set->num_capabilities));
+
+    constraints = calloc(set->num_constraints, sizeof(*set->constraints));
+
+    if (!constraints) {
+        goto fail;
+    }
+
+    for (i = 0; i < set->num_constraints; i++) {
+        DESERIALIZE(&constraints[i], sizeof(set->constraints[i]));
+    }
+
+    capabilities = calloc(set->num_capabilities, sizeof(*capabilities));
+
+    if (!capabilities) {
+        goto fail;
+    }
+
+    for (i = 0; i < set->num_capabilities; i++) {
+        capability_header_t header;
+
+        PEEK_DESERIALIZE(&header, sizeof(header));
+
+        capabilities[i] = calloc(1, sizeof(header) +
+                                 header.common.length_in_words *
+                                 sizeof(uint32_t));
+
+        if (!capabilities[i]) {
+            goto fail;
+        }
+
+        DESERIALIZE(capabilities[i], sizeof(*capabilities[i]) +
+                    header.common.length_in_words * sizeof(uint32_t));
+    }
+
+#undef DESERIALIZE
+#undef PEEK_DESERIALIZE
+
+    set->constraints = constraints;
+    set->capabilities = (const capability_header_t *const *)capabilities;
+    *capability_set = set;
+
+    return 0;
+
+fail:
+    if (set) {
+        if (capabilities) {
+            for (i = 0; i < set->num_capabilities; i++) {
+                free(capabilities[i]);
+            }
+
+            free(capabilities);
+        }
+    }
+    free(constraints);
+    free(set);
+
+    return -1;
+}

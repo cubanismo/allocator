@@ -96,6 +96,33 @@ extern int device_create_allocation(device_t *dev,
 extern void device_destroy_allocation(device_t *dev,
                                       allocation_t *allocation);
 
+/*!
+ * Serialize a capability set to a stream of raw bytes.
+ *
+ * The caller is responsible for freeing the memory pointed to by
+ * <data>:
+ *
+ *     free(data);
+ */
+extern int serialize_capability_set(const capability_set_t *capability_set,
+                                    size_t *data_size,
+                                    void **data);
+
+/*!
+ * Allocate a capability set and populate it from a raw stream of bytes.
+ *
+ * The caller is responsible for freeing the memory pointed to by
+ * <capability_set>:
+ *
+ *     free((void *)((*capability_set)->constraints));
+ *     for i = [0..(*capability_set)->num_capabilities)
+ *         free((void *)((*capability_set)->capabilities[i]));
+ *     free((void *)((*capability_set)->capabilities));
+ */
+extern int deserialize_capability_set(size_t data_size,
+                                      const void *data,
+                                      capability_set_t **capability_set);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
