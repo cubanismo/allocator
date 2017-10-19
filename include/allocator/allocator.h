@@ -97,6 +97,20 @@ extern void device_destroy_allocation(device_t *dev,
                                       allocation_t *allocation);
 
 /*!
+ * Export an allocation previously created on the specified device.
+ *
+ * On success, the caller takes ownership of the file descriptor returned in
+ * <fd> and must free the memory pointed to by <metadata>:
+ *
+ *     free(*metadata);
+ */
+extern int device_export_allocation(device_t *dev,
+                                    const allocation_t *allocation,
+                                    size_t *metadata_size,
+                                    void **metadata,
+                                    int *fd);
+
+/*!
  * Serialize a capability set to a stream of raw bytes.
  *
  * The caller is responsible for freeing the memory pointed to by

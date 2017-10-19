@@ -594,3 +594,20 @@ fail:
 
     return -1;
 }
+
+int device_export_allocation(device_t *dev,
+                             const allocation_t *allocation,
+                             size_t *metadata_size,
+                             void **metadata,
+                             int *fd)
+{
+    int status = serialize_capability_set(allocation->capability_set,
+                                          metadata_size,
+                                          metadata);
+
+    if (status) {
+        return status;
+    }
+
+    return dev->get_allocation_fd(dev, allocation, fd);
+}

@@ -182,6 +182,16 @@ struct device {
      * Populated by the driver.
      */
     void (*destroy_allocation)(device_t *dev, allocation_t *allocation);
+
+    /*!
+     * Get a file-descriptor handle for an allocation previously returned
+     * by create_allocation().
+     *
+     * Populated by the driver.
+     */
+    int (*get_allocation_fd)(device_t *dev,
+                             const allocation_t *allocation,
+                             int *fd);
 };
 
 /*!
