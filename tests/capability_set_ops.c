@@ -35,7 +35,7 @@
 
 static void usage(void)
 {
-    printf("\nUsage: capability_merging [-d|--device] DEVICE0_FILE_NAME "
+    printf("\nUsage: capability_set_ops [-d|--device] DEVICE0_FILE_NAME "
            "[[-d|--device] DEVICE1_FILE_NAME ...]\n");
 }
 
@@ -166,6 +166,35 @@ int main(int argc, char *argv[])
 
         if (num_capability_sets[i]) {
             uint32_t n;
+
+            /*
+             * Ensure serializing and deserializing capability sets is an
+             * identity operation.
+             */
+            for (n = 0; n < num_capability_sets[i]; n++) {
+                void *data;
+                size_t data_size;
+                capability_set_t *tmp_set;
+
+                if (serialize_capability_set(&capability_sets[i][n],
+                                             &data_size,
+                                             &data)) {
+                    FAIL("Could not serialize a capability set\n");
+                }
+
+                if (deserialize_capability_set(data_size, data, &tmp_set)) {
+                    FAIL("Could not deserialize a capability set\n");
+                }
+
+                if (compare_capability_sets(&capability_sets[i][n],
+                                            tmp_set)) {
+                    FAIL("Serializing then deserializing a capability set "
+                         "modified the set contents\n");
+                }
+
+                free_capability_sets(1, tmp_set);
+                free(data);
+            }
 
             /*
              * Ensure deriving capabilities from two identical lists of sets is

@@ -18,11 +18,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-bin_PROGRAMS = capability_merging device_alloc create_allocation
+bin_PROGRAMS = capability_set_ops device_alloc create_allocation
 
-capability_merging_CFLAGS = -I$(top_srcdir)/include
-capability_merging_SOURCES = capability_merging.c test_utils.c
-capability_merging_LDADD = $(top_builddir)/src/liballocator.la
+capability_set_ops_CFLAGS = -I$(top_srcdir)/include
+capability_set_ops_SOURCES = capability_set_ops.c test_utils.c
+capability_set_ops_LDADD = $(top_builddir)/src/liballocator.la
 
 device_alloc_CFLAGS = -I$(top_srcdir)/include
 device_alloc_SOURCES = device_alloc.c test_utils.c
