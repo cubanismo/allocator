@@ -123,12 +123,28 @@ int main(int argc, char *argv[])
     }
 
     for (i = 0; i < num_capability_sets; i++) {
+        int allocation_fd;
+        size_t metadata_size;
+        void *metadata;
+
         if (device_create_allocation(dev,
                                      &assertion,
                                      &capability_sets[i],
                                      &allocation)) {
             FAIL("Couldn't create allocation from capability set %u\n", i);
         }
+
+        if (device_export_allocation(dev,
+                                     allocation,
+                                     &metadata_size,
+                                     &metadata,
+                                     &allocation_fd)) {
+            FAIL("Couldn't export an allocation created from capability set "
+                 "%u\n", i);
+        }
+
+        close(allocation_fd);
+        free(metadata);
 
         device_destroy_allocation(dev, allocation);
     }
