@@ -32,5 +32,8 @@ extern int compare_capability_sets(capability_set_t *set0,
                                    capability_set_t *set1);
 extern const constraint_t *find_constraint(const capability_set_t *set,
                                            uint32_t name);
+extern void print_constraint(const constraint_t *constraint);
+extern void print_capability_header(const capability_header_t *capability);
+extern void print_capability_set(const capability_set_t *set);
 
 #endif /* __ALLOCATOR_TEST_UTILS_H__ */

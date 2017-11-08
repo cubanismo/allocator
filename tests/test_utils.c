@@ -112,3 +112,109 @@ const constraint_t *find_constraint(const capability_set_t *set, uint32_t name)
 
     return NULL;
 }
+
+void print_constraint(const constraint_t *constraint)
+{
+    int i;
+
+#define DO_PRINT_CONSTRAINT(NAME, FMT, UNION_MEMBER)                            \
+    case CONSTRAINT_ ## NAME:                                                   \
+        printf("         name:  CONSTRAINT_" #NAME " (0x%x)\n",                 \
+               constraint->name);                                               \
+        printf("         value: " FMT "\n", constraint->u.UNION_MEMBER.value);  \
+        break
+
+    switch (constraint->name) {
+    DO_PRINT_CONSTRAINT(ADDRESS_ALIGNMENT, "%llu", address_alignment);
+    DO_PRINT_CONSTRAINT(PITCH_ALIGNMENT, "%u", pitch_alignment);
+    DO_PRINT_CONSTRAINT(MAX_PITCH, "%u", max_pitch);
+    default:
+        printf("         name:  UNKNOWN (0x%x)\n", constraint->name);
+        printf("         value: ");
+        for (i = 0; i < sizeof(constraint->u); i++) {
+            if (i > 0) {
+                printf(":");
+            }
+            printf("%02X", ((const char *)(&constraint->u))[i]);
+        }
+        printf("\n");
+        break;
+    }
+
+#undef DO_PRINT_CONSTRAINT
+}
+
+void print_capability_header(const capability_header_t *capability)
+{
+#define PRINT_VENDOR(NAME)                                                      \
+        printf("         vendor:          " #NAME " (0x%x)\n",                  \
+        capability->common.vendor);                                             \
+        break
+#define DO_PRINT_VENDOR(NAME) case VENDOR_ ## NAME: PRINT_VENDOR(NAME)
+
+#define PRINT_CAP(NAME)                                                         \
+        printf("         name:            %s (0x%x)\n",                         \
+               (capability->common.vendor == VENDOR_BASE) ? "CAP_BASE_" #NAME : \
+                                                            "VENDOR_CAP",       \
+               capability->common.name);                                        \
+        break
+#define DO_PRINT_CAP(NAME) case CAP_BASE_ ## NAME: PRINT_CAP(NAME)
+
+    switch (capability->common.vendor) {
+    DO_PRINT_VENDOR(BASE);
+    DO_PRINT_VENDOR(NVIDIA);
+    DO_PRINT_VENDOR(ARM);
+    DO_PRINT_VENDOR(INTEL);
+    default:
+        PRINT_VENDOR(UNKNOWN);
+    }
+
+    switch (capability->common.name) {
+    DO_PRINT_CAP(PITCH_LINEAR);
+    default:
+        PRINT_CAP(UNKNOWN);
+    }
+
+    printf("         length_in_words: %u\n", capability->common.length_in_words);
+    printf("         required:        %s\n", capability->required ? "true" : "false");
+
+    if (capability->common.length_in_words > 0) {
+        int i;
+
+        printf("         value:           ");
+        for (i = 0; i < capability->common.length_in_words; i++) {
+            if (i > 0) {
+                printf(":");
+            }
+            printf("%04X", ((const uint32_t *)(&capability[1]))[i]);
+        }
+        printf("\n");
+    }
+
+#undef PRINT_VENDOR
+#undef DO_PRINT_VENDOR
+#undef PRINT_CAP
+#undef DO_PRINT_CAP
+}
+
+void print_capability_set(const capability_set_t *set)
+{
+    int i;
+
+    printf("   capability_set_t (%p):\n", set);
+    printf("      num_constraints: %u\n", set->num_constraints);
+    printf("      constraints:\n");
+    for (i = 0; i < set->num_constraints; i++) {
+        printf("       %d:\n", i);
+        print_constraint(&set->constraints[i]);
+        printf("\n");
+    }
+
+    printf("      num_capabilities: %u\n", set->num_capabilities);
+    printf("      capabilities:\n");
+    for (i = 0; i < set->num_capabilities; i++) {
+        printf("       %d:\n", i);
+        print_capability_header(set->capabilities[i]);
+        printf("\n");
+    }
+}
