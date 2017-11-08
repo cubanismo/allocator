@@ -24,6 +24,7 @@
 #define __ALLOCATOR_COMMON_H__
 
 #include <stdint.h>
+#include <stddef.h>
 
 /*! TODO: Namespace everything when we settle on a project name (libgbm2?) */
 
