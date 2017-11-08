@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <allocator/allocator.h>
 
 #include "test_utils.h"
@@ -36,13 +37,14 @@
 static void usage(void)
 {
     printf("\nUsage: capability_set_ops [-d|--device] DEVICE0_FILE_NAME "
-           "[[-d|--device] DEVICE1_FILE_NAME ...]\n");
+           "[[-d|--device] DEVICE1_FILE_NAME ...] [-v|--verbose]\n");
 }
 
 int main(int argc, char *argv[])
 {
     static struct option long_options[] = {
-        {"device", required_argument, NULL, 'd'},
+        {"device",  required_argument, NULL, 'd'},
+        {"verbose", no_argument,       NULL, 'v'},
         {NULL, 0, NULL, 0}
     };
 
@@ -83,8 +85,9 @@ int main(int argc, char *argv[])
     char **temp;
     int *dev_fds;
     device_t **devs;
+    bool verbose = false;
 
-    while ((opt = getopt_long(argc, argv, "d:", long_options, NULL)) != -1) {
+    while ((opt = getopt_long(argc, argv, "d:v", long_options, NULL)) != -1) {
         switch (opt) {
         case 'd':
             dev_file_names = realloc(dev_file_names,
@@ -101,6 +104,10 @@ int main(int argc, char *argv[])
             }
 
             num_devices++;
+            break;
+
+        case 'v':
+            verbose = true;
             break;
 
         case '?':
@@ -164,6 +171,18 @@ int main(int argc, char *argv[])
                  i);
         }
 
+        /* Print initial capability sets */
+        if (verbose) {
+            uint32_t n;
+
+            for (n = 0; n < num_capability_sets[i]; n++) {
+                printf("Device %d - Set %d:\n", i, n);
+                print_capability_set(&capability_sets[i][n]);
+            }
+        }
+    }
+
+    for (i = 0; i < num_devices; i++) {
         if (num_capability_sets[i]) {
             uint32_t n;
 
@@ -188,6 +207,12 @@ int main(int argc, char *argv[])
 
                 if (compare_capability_sets(&capability_sets[i][n],
                                             tmp_set)) {
+                    /* Print tmp_set to compare */
+                    if (verbose) {
+                        printf("Deserialized (Device %d - Set %d):\n", i, n);
+                        print_capability_set(tmp_set);
+                    }
+
                     FAIL("Serializing then deserializing a capability set "
                          "modified the set contents\n");
                 }
@@ -210,6 +235,14 @@ int main(int argc, char *argv[])
             }
 
             if (tmp_num_sets[0] != num_capability_sets[i]) {
+                /* Print tmp_sets to compare */
+                if (verbose) {
+                    for (n = 0; n < tmp_num_sets[0]; n++) {
+                        printf("Derived (Device %d - Set %d):\n", i, n);
+                        print_capability_set(&tmp_sets[0][n]);
+                    }
+                }
+
                 FAIL("Deriving capabilities from two identical lists removed "
                      "or added sets\n");
             }
@@ -217,6 +250,12 @@ int main(int argc, char *argv[])
             for (n = 0; n < num_capability_sets[i]; n++) {
                 if (compare_capability_sets(&capability_sets[i][n],
                                             &tmp_sets[0][n])) {
+                    /* Print tmp_set to compare */
+                    if (verbose) {
+                        printf("Derived (Device %d - Set %d):\n", i, n);
+                        print_capability_set(&tmp_sets[0][n]);
+                    }
+
                     FAIL("Deriving capabilities from two identical lists "
                          "was not an identity operation\n");
                 }
@@ -240,6 +279,14 @@ int main(int argc, char *argv[])
                                 &tmp_num_sets[next],
                                 &tmp_sets[next])) {
             FAIL("Couldn't derive capabilities\n");
+        }
+
+        if (verbose) {
+            uint32_t n;
+            for (n = 0; n < tmp_num_sets[next]; n++) {
+                printf("Derived against device %d (set %d):\n", i, n);
+                print_capability_set(&tmp_sets[next][n]);
+            }
         }
 
         free_capability_sets(tmp_num_sets[last], tmp_sets[last]);
