@@ -99,3 +99,16 @@ int compare_capability_sets(capability_set_t *set0, capability_set_t *set1)
 
     return 0;
 }
+
+const constraint_t *find_constraint(const capability_set_t *set, uint32_t name)
+{
+    int i;
+
+    for (i = 0; i < set->num_constraints; i++) {
+        if (set->constraints[i].name == name) {
+            return &set->constraints[i];
+        }
+    }
+
+    return NULL;
+}
