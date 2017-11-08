@@ -500,7 +500,7 @@ int serialize_capability_set(const capability_set_t *set,
     }
 
     for (i = 0; i < set->num_capabilities; i++) {
-        size_t cap_size = sizeof(set->capabilities[i]) +
+        size_t cap_size = sizeof(*set->capabilities[i]) +
             set->capabilities[i]->common.length_in_words * sizeof(uint32_t);
 
         SERIALIZE(set->capabilities[i], cap_size);
