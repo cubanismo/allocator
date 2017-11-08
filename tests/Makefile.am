@@ -31,3 +31,11 @@ device_alloc_LDADD = $(top_builddir)/src/liballocator.la
 create_allocation_CFLAGS = -I$(top_srcdir)/include
 create_allocation_SOURCES = create_allocation.c test_utils.c
 create_allocation_LDADD = $(top_builddir)/src/liballocator.la
+
+if HAVE_LIBDRM
+bin_PROGRAMS += drm_import_allocation
+drm_import_allocation_CFLAGS = -I$(top_srcdir)/include $(LIBDRM_CFLAGS)
+drm_import_allocation_SOURCES = drm_import_allocation.c test_utils.c
+drm_import_allocation_LDADD = $(top_builddir)/src/liballocator.la
+drm_import_allocation_LDFLAGS = $(LIBDRM_LIBS)
+endif

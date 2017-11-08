@@ -45,6 +45,13 @@ if test -z "$DOXYGEN"; then
 fi
 AM_CONDITIONAL([HAVE_DOXYGEN], [test -n "$DOXYGEN"])
 
+PKG_CHECK_MODULES(LIBDRM, [libdrm], [have_libdrm="yes"], [have_libdrm="no"])
+if test "x$have_libdrm" != xyes; then
+    AC_MSG_WARN([libdrm is a hard build-time dependency for some allocator
+                 tests. They will be skipped when building.])
+fi
+AM_CONDITIONAL([HAVE_LIBDRM], [test "x$have_libdrm" = xyes])
+
 AC_CONFIG_FILES([Makefile
                  src/Makefile
                  include/Makefile
