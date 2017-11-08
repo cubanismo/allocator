@@ -41,16 +41,16 @@ AC_CHECK_FUNC([strdup], [], [
 ])
 
 if test -z "$DOXYGEN"; then
-	AC_MSG_WARN([Doxygen not found - documentation will not be built])
+    AC_MSG_WARN([Doxygen not found - documentation will not be built])
 fi
 AM_CONDITIONAL([HAVE_DOXYGEN], [test -n "$DOXYGEN"])
 
 AC_CONFIG_FILES([Makefile
                  src/Makefile
-		 include/Makefile
-		 tests/Makefile
-		 liballocator.pc])
+                 include/Makefile
+                 tests/Makefile
+                 liballocator.pc])
 AM_COND_IF([HAVE_DOXYGEN],
-	   [AC_CONFIG_FILES([Doxyfile])])
+    [AC_CONFIG_FILES([Doxyfile])])
 
 AC_OUTPUT
