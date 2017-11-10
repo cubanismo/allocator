@@ -45,6 +45,11 @@ extern void device_destroy(device_t *dev);
 
 /*!
  * Query device capabilities for a given assertion.
+ *
+ * The caller is responsible for freeing the memory pointed to by
+ * <capability_sets>:
+ *
+ *     free_capability_sets(*num_capability_sets, *capability_sets);
  */
 extern int device_get_capabilities(device_t *dev,
                                    const assertion_t *assertion,
@@ -56,6 +61,11 @@ extern int device_get_capabilities(device_t *dev,
 /*!
  * Compute a list of common capabilities by determining the compatible combination
  * of two existing capability set lists.
+ *
+ * The caller is responsible for freeing the memory pointed to by
+ * <capability_sets>:
+ *
+ *     free_capability_sets(*num_capability_sets, *capability_sets);
  */
 extern int derive_capabilities(uint32_t num_caps0,
                                const capability_set_t *caps0,
@@ -111,6 +121,12 @@ extern int device_export_allocation(device_t *dev,
                                     int *fd);
 
 /*!
+ * Free an array of capability sets created by the allocator library
+ */
+extern void free_capability_sets(uint32_t num_capability_sets,
+                                 capability_set_t *capability_sets);
+
+/*!
  * Serialize a capability set to a stream of raw bytes.
  *
  * The caller is responsible for freeing the memory pointed to by
@@ -128,10 +144,7 @@ extern int serialize_capability_set(const capability_set_t *capability_set,
  * The caller is responsible for freeing the memory pointed to by
  * <capability_set>:
  *
- *     free((void *)((*capability_set)->constraints));
- *     for i = [0..(*capability_set)->num_capabilities)
- *         free((void *)((*capability_set)->capabilities[i]));
- *     free((void *)((*capability_set)->capabilities));
+ *     free_capability_sets(1, *capability_set);
  */
 extern int deserialize_capability_set(size_t data_size,
                                       const void *data,

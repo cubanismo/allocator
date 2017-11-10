@@ -48,25 +48,6 @@ void free_assertion_hints(uint32_t num_hints, assertion_hint_t *hints)
     free(hints);
 }
 
-void free_capability_sets(uint32_t num_sets, capability_set_t *sets)
-{
-    uint32_t s;
-
-    for (s = 0; s < num_sets; s++) {
-        uint32_t i;
-
-        free((void *)sets[s].constraints);
-
-        for (i = 0; i < sets[s].num_capabilities; i++) {
-            free((void *)sets[s].capabilities[i]);
-        }
-
-        free((void *)sets[s].capabilities);
-    }
-
-    free(sets);
-}
-
 int compare_capability_sets(capability_set_t *set0, capability_set_t *set1)
 {
     uint32_t i;

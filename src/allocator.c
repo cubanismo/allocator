@@ -457,6 +457,28 @@ void device_destroy_allocation(device_t *dev, allocation_t *allocation)
     dev->destroy_allocation(dev, allocation);
 }
 
+void free_capability_sets(uint32_t num_capability_sets,
+                          capability_set_t *capability_sets)
+{
+    uint32_t i, j;
+
+    if (capability_sets) {
+        for (i = 0; i < num_capability_sets; i++) {
+            if (capability_sets[i].capabilities) {
+                for (j = 0; j < capability_sets[i].num_capabilities; j++) {
+                    free((void *)capability_sets[i].capabilities[j]);
+                }
+
+                free((void *)capability_sets[i].capabilities);
+            }
+
+            free((void *)capability_sets[i].constraints);
+        }
+
+        free(capability_sets);
+    }
+}
+
 int serialize_capability_set(const capability_set_t *set,
                              size_t *data_size,
                              void **data)
@@ -537,20 +559,17 @@ int deserialize_capability_set(size_t data_size,
     DESERIALIZE(&set->num_constraints, sizeof(set->num_constraints));
     DESERIALIZE(&set->num_capabilities, sizeof(set->num_capabilities));
 
-    constraints = calloc(set->num_constraints, sizeof(*set->constraints));
+    set->constraints = constraints =
+        calloc(set->num_constraints, sizeof(*set->constraints));
+    capabilities = calloc(set->num_capabilities, sizeof(*capabilities));
+    set->capabilities = (const capability_header_t *const *)capabilities;
 
-    if (!constraints) {
+    if (!constraints || !capabilities) {
         goto fail;
     }
 
     for (i = 0; i < set->num_constraints; i++) {
         DESERIALIZE(&constraints[i], sizeof(set->constraints[i]));
-    }
-
-    capabilities = calloc(set->num_capabilities, sizeof(*capabilities));
-
-    if (!capabilities) {
-        goto fail;
     }
 
     for (i = 0; i < set->num_capabilities; i++) {
@@ -580,17 +599,7 @@ int deserialize_capability_set(size_t data_size,
     return 0;
 
 fail:
-    if (set) {
-        if (capabilities) {
-            for (i = 0; i < set->num_capabilities; i++) {
-                free(capabilities[i]);
-            }
-
-            free(capabilities);
-        }
-    }
-    free(constraints);
-    free(set);
+    free_capability_sets(1, set);
 
     return -1;
 }
