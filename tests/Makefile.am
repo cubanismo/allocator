@@ -39,3 +39,5 @@ drm_import_allocation_SOURCES = drm_import_allocation.c test_utils.c
 drm_import_allocation_LDADD = $(top_builddir)/src/liballocator.la
 drm_import_allocation_LDFLAGS = $(LIBDRM_LIBS)
 endif
+
+noinst_HEADERS = test_utils.h
