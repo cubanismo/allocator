@@ -150,6 +150,10 @@ typedef struct capability_header {
     int8_t required;
 } capability_header_t;
 
+#define CAPABILITY_LENGTH_IN_WORDS(t) \
+    ((sizeof(t) - sizeof(capability_header_t) + sizeof(uint32_t) - 1) / \
+     sizeof(uint32_t))
+
 /*!
  * The ability to represent 2D images using pitch x height pixel layout.
  *
@@ -195,6 +199,10 @@ typedef struct capability_set {
  */
 
 typedef struct header usage_header_t;
+
+#define USAGE_LENGTH_IN_WORDS(t) \
+    ((sizeof(t) - sizeof(usage_header_t) + sizeof(uint32_t) - 1) / \
+     sizeof(uint32_t))
 
 /*!
  * Request to support sampling from a 2D image using a GPU's texture units.

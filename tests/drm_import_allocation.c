@@ -60,9 +60,9 @@ int main(int argc, char *argv[])
 
     static usage_texture_t texture_usage = {
         { /* header */
-            VENDOR_BASE,        /* usage vendor */
-            USAGE_BASE_TEXTURE, /* usage name */
-            0,                  /* length_in_word */
+            VENDOR_BASE,                            /* usage vendor */
+            USAGE_BASE_TEXTURE,                     /* usage name */
+            USAGE_LENGTH_IN_WORDS(usage_texture_t)  /* length_in_word */
         }
     };
 
