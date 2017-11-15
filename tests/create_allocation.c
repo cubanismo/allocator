@@ -126,6 +126,7 @@ int main(int argc, char *argv[])
         int allocation_fd;
         size_t metadata_size;
         void *metadata;
+        uint64_t allocation_size;
 
         if (device_create_allocation(dev,
                                      &assertion,
@@ -136,6 +137,7 @@ int main(int argc, char *argv[])
 
         if (device_export_allocation(dev,
                                      allocation,
+                                     &allocation_size,
                                      &metadata_size,
                                      &metadata,
                                      &allocation_fd)) {

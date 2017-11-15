@@ -617,6 +617,7 @@ fail:
 
 int device_export_allocation(device_t *dev,
                              const allocation_t *allocation,
+                             uint64_t *allocation_size,
                              size_t *metadata_size,
                              void **metadata,
                              int *fd)
@@ -628,6 +629,8 @@ int device_export_allocation(device_t *dev,
     if (status) {
         return status;
     }
+
+    *allocation_size = allocation->size;
 
     return dev->get_allocation_fd(dev, allocation, fd);
 }

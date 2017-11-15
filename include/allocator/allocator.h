@@ -120,6 +120,7 @@ extern void device_destroy_allocation(device_t *dev,
  */
 extern int device_export_allocation(device_t *dev,
                                     const allocation_t *allocation,
+                                    uint64_t *allocation_size,
                                     size_t *metadata_size,
                                     void **metadata,
                                     int *fd);

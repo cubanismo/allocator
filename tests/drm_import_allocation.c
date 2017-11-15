@@ -151,6 +151,7 @@ int main(int argc, char *argv[])
         int allocation_fd;
         size_t metadata_size;
         void *metadata;
+        uint64_t allocation_size;
         uint32_t drm_gem_handle;
         struct drm_gem_close gemCloseArgs;
         int ret;
@@ -164,6 +165,7 @@ int main(int argc, char *argv[])
 
         if (device_export_allocation(dev,
                                      allocation,
+                                     &allocation_size,
                                      &metadata_size,
                                      &metadata,
                                      &allocation_fd)) {
