@@ -444,6 +444,17 @@ int device_get_assertion_hints(device_t *dev,
                                     hints);
 }
 
+void free_assertion_hints(uint32_t num_hints, assertion_hint_t *hints)
+{
+    uint32_t h;
+
+    for (h = 0; h < num_hints; h++) {
+        free((void *)hints[h].formats);
+    }
+
+    free(hints);
+}
+
 int device_create_allocation(device_t *dev,
                              const assertion_t *assertion,
                              const capability_set_t *capability_set,

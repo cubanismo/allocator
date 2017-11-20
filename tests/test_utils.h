@@ -26,7 +26,6 @@
 #include <allocator/allocator.h>
 
 extern void FAIL(const char *fmt, ...);
-extern void free_assertion_hints(uint32_t num_hints, assertion_hint_t *hints);
 extern int compare_capability_sets(capability_set_t *set0,
                                    capability_set_t *set1);
 extern const constraint_t *find_constraint(const capability_set_t *set,

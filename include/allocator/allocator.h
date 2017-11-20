@@ -82,14 +82,18 @@ extern int derive_capabilities(uint32_t num_caps0,
  *
  * The caller is responsible of freeing the memory pointed by <hints>:
  *
- *     free((void *)((*hints)->formats));
- *     free((void *)(*hints));
+ *     free_assertion_hints(*num_hints, *hints);
  */
 extern int device_get_assertion_hints(device_t *dev,
                                       uint32_t num_uses,
                                       const usage_t *uses,
                                       uint32_t *num_hints,
                                       assertion_hint_t **hints);
+
+/*!
+ * Free an array of assertion hints created by the allocator library
+ */
+extern void free_assertion_hints(uint32_t num_hints, assertion_hint_t *hints);
 
 /*!
  * Create an allocation conforming to an assertion and capability set on the
