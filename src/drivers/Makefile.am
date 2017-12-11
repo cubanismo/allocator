@@ -18,23 +18,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-SUBDIRS = drivers
+SUBDIRS =
 
-lib_LTLIBRARIES = liballocator.la
-
-liballocator_la_CFLAGS = -I$(top_srcdir)/include
-
-liballocator_la_LIBADD = $(MATH_LIBS) $(DL_LIBS)
-
-liballocator_la_SOURCES = allocator.c
-liballocator_la_SOURCES += constraint_funcs.c
-liballocator_la_SOURCES += constraint_funcs.h
-liballocator_la_SOURCES += driver_manager.c
-liballocator_la_SOURCES += driver_manager.h
-liballocator_la_SOURCES += cJSON/cJSON.c
-liballocator_la_SOURCES += cJSON/cJSON.h
-liballocator_la_SOURCES += constraints/lcm.c
-liballocator_la_SOURCES += constraints/lcm.h
-liballocator_la_SOURCES += constraints/address_alignment.c
-liballocator_la_SOURCES += constraints/pitch_alignment.c
-liballocator_la_SOURCES += constraints/max_pitch.c
+if ENABLE_NOUVEAU
+SUBDIRS += nouveau
+endif
