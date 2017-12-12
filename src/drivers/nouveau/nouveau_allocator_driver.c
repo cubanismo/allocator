@@ -21,6 +21,7 @@
  */
 
 #include <allocator/driver.h>
+#include <allocator/helpers.h>
 #include <allocator/utils.h>
 
 #include <sys/stat.h>
@@ -53,6 +54,13 @@ typedef struct {
         uint32_t max_dimensions;
     } properties;
 } nouveau_device_t;
+
+typedef struct {
+    allocation_t base;
+
+    struct nouveau_bo *bo;
+    int fd;
+} nouveau_allocation_t;
 
 /* Nouveau capability definitions */
 #define NOUVEAU_CAP_WORDS(c) ((sizeof(c) - sizeof(capability_header_t) + 3)/4)
@@ -275,7 +283,20 @@ static void
 nouveau_device_destroy_allocation(device_t *dev,
                                   allocation_t *allocation)
 {
-    /* TODO */
+    nouveau_allocation_t *nouveau_allocation =
+        (nouveau_allocation_t *)allocation->allocation_private;
+
+    if (nouveau_allocation) {
+        if (nouveau_allocation->fd >= 0) {
+            close(nouveau_allocation->fd);
+        }
+
+        nouveau_bo_ref(NULL, &nouveau_allocation->bo);
+
+        free_capability_sets(1, (capability_set_t *)allocation->capability_set);
+
+        free(nouveau_allocation);
+    }
 }
 
 static int nouveau_device_create_allocation(device_t *dev,
@@ -283,7 +304,122 @@ static int nouveau_device_create_allocation(device_t *dev,
                                   const capability_set_t *capability_set,
                                   allocation_t **allocation)
 {
-    /* TODO */
+    nouveau_driver_t *nouveau_driver =
+        (nouveau_driver_t *)dev->driver->driver_private;
+    nouveau_device_t *nouveau_device =
+        (nouveau_device_t *)dev->device_private;
+    nouveau_allocation_t *nouveau_allocation = NULL;
+
+    int is_vidmem = !!util_find_cap(capability_set, NOUVEAU_CAP_VIDMEM_NAME);
+    int is_contig = !!util_find_cap(capability_set, NOUVEAU_CAP_CONTIG_NAME);
+    const constraint_t *address_alignment =
+        util_find_constraint(capability_set, CONSTRAINT_ADDRESS_ALIGNMENT);
+    const constraint_t *pitch_alignment =
+        util_find_constraint(capability_set, CONSTRAINT_PITCH_ALIGNMENT);
+
+    uint32_t bpp = 32; /* XXX Should be based on assertion->format */
+    uint32_t pitch = 0;
+    uint32_t height = 0;
+    uint32_t flags = 0;
+    union nouveau_bo_config bo_config = { 0 };
+
+    /* Allocate the allocation object */
+    nouveau_allocation =
+        (nouveau_allocation_t *)calloc(1, sizeof(nouveau_allocation_t));
+    if (!nouveau_allocation) {
+        goto fail;
+    }
+
+    nouveau_allocation->base.allocation_private = nouveau_allocation;
+    nouveau_allocation->fd = -1;
+
+    /* Save the capability set for future use */
+    nouveau_allocation->base.capability_set = dup_capability_set(capability_set);
+    if (!nouveau_allocation->base.capability_set) {
+        goto fail;
+    }
+
+    /* Set the approriate buffer object flags */
+    flags |= (is_vidmem ? NOUVEAU_BO_VRAM   : 0);
+    flags |= (is_contig ? NOUVEAU_BO_CONTIG : 0);
+    flags |= NOUVEAU_BO_NOSNOOP;
+
+    /* Allocation size */
+    pitch = bpp * assertion->width / 8;
+    pitch = util_align(pitch, (pitch_alignment ?
+                               pitch_alignment->u.pitch_alignment.value : 1));
+
+    /* Account for very generous prefetch (allocate size as if tiled). */
+    height = UTIL_MAX2(assertion->height, 8);
+    height = util_next_power_of_two(height);
+
+    nouveau_allocation->base.size = pitch * height;
+
+    /* Memory type and tile mode according to format.
+     *
+     * Memory type values below come from the nouveau Gallium driver
+     * implementation in Mesa.
+     */
+    /* TODO: Handle all formats and tile modes */
+    switch (nouveau_device->dev->chipset & ~0xf) {
+    /* Fermi */
+    case 0xc0:
+    case 0xd0:
+    /* Kepler */
+    case 0xe0:
+    case 0xf0:
+    case 0x100:
+    /* Maxwell */
+    case 0x110:
+    case 0x120:
+    /* Pascal */
+    case 0x130:
+        switch (bpp) {
+        case 32:
+            bo_config.nvc0.memtype = 0xfe; /* uncompressed */
+            break;
+        default:
+            bo_config.nvc0.memtype = 0;
+            break;
+        }
+        bo_config.nvc0.tile_mode = 0; /* No tiling */
+        break;
+    default:
+        switch (bpp) {
+        case 32:
+            bo_config.nv50.memtype = 0x70; /* uncompressed */
+            break;
+        default:
+            bo_config.nvc0.memtype = 0;
+            break;
+        }
+        bo_config.nv50.tile_mode = 0; /* No tiling */
+        break;
+    }
+
+    if (nouveau_bo_new(nouveau_device->dev,
+                       flags,
+                       (address_alignment ?
+                        address_alignment->u.address_alignment.value : 1),
+                       nouveau_allocation->base.size,
+                       &bo_config,
+                       &nouveau_allocation->bo))
+    {
+        goto fail;
+    }
+
+    if (nouveau_bo_set_prime(nouveau_allocation->bo, &nouveau_allocation->fd)) {
+        goto fail;
+    }
+
+    *allocation = &nouveau_allocation->base;
+
+    return 0;
+
+fail:
+    if (nouveau_allocation) {
+        dev->destroy_allocation(dev, &nouveau_allocation->base);
+    }
     return -1;
 }
 
@@ -291,8 +427,12 @@ static int nouveau_device_get_allocation_fd(device_t *dev,
                                  const allocation_t *allocation,
                                  int *fd)
 {
-    /* TODO */
-    return -1;
+    const nouveau_allocation_t *nouveau_allocation =
+        (const nouveau_allocation_t *)allocation->allocation_private;
+
+    *fd = dup(nouveau_allocation->fd);
+
+    return (*fd < 0) ? -1 : 0;
 }
 
 static void nouveau_device_destroy(device_t *device)
