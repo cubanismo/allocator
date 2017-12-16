@@ -24,6 +24,8 @@
 #define __ALLOCATOR_HELPERS_H__
 
 #include <allocator/common.h>
+#include <stdlib.h>
+#include <string.h>
 #include <assert.h>
 
 #ifdef __cplusplus
@@ -58,6 +60,59 @@ free_capability_sets(uint32_t num_capability_sets,
 
         free(capability_sets);
     }
+}
+
+/*!
+ * Returns an exact copy of the given capability set
+ */
+static inline capability_set_t *
+dup_capability_set(const capability_set_t *set)
+{
+    constraint_t *constraints;
+    capability_header_t **capabilities;
+    size_t constraints_size;
+    size_t cap_size;
+    uint32_t i;
+
+    capability_set_t *dup_set = (capability_set_t *)calloc(1, sizeof(*set));
+    if (!dup_set) {
+        return NULL;
+    }
+
+    constraints_size = set->num_constraints * sizeof(*set->constraints);
+    dup_set->constraints = constraints =
+        (constraint_t *)malloc(constraints_size);
+    if (!dup_set->constraints) {
+        free_capability_sets(1, dup_set);
+        return NULL;
+    }
+
+    dup_set->num_constraints = set->num_constraints;
+    memcpy(constraints, set->constraints, constraints_size);
+
+    capabilities = (capability_header_t **)
+        calloc(set->num_capabilities, sizeof(*dup_set->capabilities));
+    dup_set->capabilities = (const capability_header_t *const *)capabilities;
+    if (!dup_set->capabilities) {
+        free_capability_sets(1, dup_set);
+        return NULL;
+    }
+
+    dup_set->num_capabilities = set->num_capabilities;
+    for (i = 0; i < set->num_capabilities; i++) {
+        cap_size = sizeof(*capabilities[i]) +
+                   sizeof(uint32_t) * set->capabilities[i]->common.length_in_words;
+
+        capabilities[i] = (capability_header_t *)malloc(cap_size);
+        if (!capabilities[i]) {
+            free_capability_sets(1, dup_set);
+            return NULL;
+        }
+
+        memcpy(capabilities[i], set->capabilities[i], cap_size);
+    }
+
+    return dup_set;
 }
 
 /*!
