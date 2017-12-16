@@ -21,6 +21,7 @@
  */
 
 #include <allocator/driver.h>
+#include <allocator/utils.h>
 
 #include <sys/stat.h>
 #include <unistd.h>
@@ -53,6 +54,24 @@ typedef struct {
     } properties;
 } nouveau_device_t;
 
+/* Nouveau capability definitions */
+#define NOUVEAU_CAP_WORDS(c) ((sizeof(c) - sizeof(capability_header_t) + 3)/4)
+
+typedef struct {
+    capability_header_t header;
+} nouveau_cap_vidmem_t;
+
+#define NOUVEAU_CAP_VIDMEM_NAME  0xF000
+#define NOUVEAU_CAP_VIDMEM_WORDS NOUVEAU_CAP_WORDS(nouveau_cap_vidmem_t)
+
+typedef struct {
+    capability_header_t header;
+} nouveau_cap_contig_t;
+
+#define NOUVEAU_CAP_CONTIG_NAME  0xF001
+#define NOUVEAU_CAP_CONTIG_WORDS NOUVEAU_CAP_WORDS(nouveau_cap_contig_t)
+
+
 static int
 nouveau_is_fd_supported(driver_t *driver, int fd)
 {
@@ -68,6 +87,21 @@ nouveau_is_fd_supported(driver_t *driver, int fd)
     }
 }
 
+static int nouveau_check_uses(const nouveau_device_t *dev,
+                              uint32_t num_uses,
+                              const usage_t *uses)
+{
+    uint32_t i;
+
+    for (i = 0; i < num_uses; i++) {
+        if ((uses[i].dev == &dev->base) || (uses[i].dev == DEVICE_NONE)) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 static int
 nouveau_device_get_capabilities(device_t *dev,
                                 const assertion_t *assertion,
@@ -76,8 +110,105 @@ nouveau_device_get_capabilities(device_t *dev,
                                 uint32_t *num_sets,
                                 capability_set_t **capability_sets)
 {
-    /* TODO */
-    return -1;
+    const nouveau_device_t *nouveau_device = dev->device_private;
+    uint32_t n_sets = 0;
+    capability_set_t *cap_sets;
+
+    constraint_t *tmp_constr;
+    capability_header_t **tmp_caps;
+
+    capability_pitch_linear_t *cap_pitch;
+    nouveau_cap_vidmem_t *cap_vidmem;
+    nouveau_cap_contig_t *cap_contig;
+    int is_display;
+
+    uint32_t n_pitch_constr = 3; /* pitch+address alignment, max pitch */
+    uint32_t n_pitch_caps = 2; /* pitch, vidmem */
+
+    if (!nouveau_check_uses(nouveau_device, num_uses, uses)) {
+        /* The app didn't specify any use for this device */
+        *num_sets = 0;
+        *capability_sets = NULL;
+        return 0;
+    }
+
+    is_display = !!util_find_use(num_uses, uses, dev, USAGE_BASE_DISPLAY);
+    if (is_display) {
+        n_pitch_caps += 1; /* contig */
+    }
+
+    n_sets = 1; /* Pitch-linear */
+
+    cap_sets = calloc(n_sets, sizeof(*cap_sets));
+    if (!cap_sets) {
+        return -1;
+    }
+
+    /* Fill in pitch-linear constraints and capabilities */
+
+    tmp_constr = calloc(n_pitch_constr, sizeof(*tmp_constr));
+    tmp_caps = calloc(n_pitch_caps, sizeof(*tmp_caps));
+    cap_pitch = calloc(1, sizeof(capability_pitch_linear_t));
+    cap_vidmem = calloc(1, sizeof(nouveau_cap_vidmem_t));
+    if (is_display) {
+        cap_contig = calloc(1, sizeof(nouveau_cap_contig_t));
+    }
+
+    if (!tmp_constr ||
+        !tmp_caps ||
+        !cap_pitch ||
+        !cap_vidmem ||
+        (is_display && !cap_contig)) {
+        free(tmp_constr);
+        free(tmp_caps);
+        free(cap_pitch);
+        free(cap_vidmem);
+        free(cap_contig);
+        free(cap_sets);
+        return -1;
+    }
+
+    tmp_constr[0].name = CONSTRAINT_ADDRESS_ALIGNMENT;
+    tmp_constr[0].u.address_alignment.value =
+        nouveau_device->properties.address_alignment;
+
+    tmp_constr[1].name = CONSTRAINT_PITCH_ALIGNMENT;
+    tmp_constr[1].u.pitch_alignment.value =
+        nouveau_device->properties.pitch_alignment;
+
+    tmp_constr[2].name = CONSTRAINT_MAX_PITCH;
+    tmp_constr[2].u.max_pitch.value =
+        nouveau_device->properties.max_pitch;
+
+    cap_pitch->header.common.vendor = VENDOR_BASE;
+    cap_pitch->header.common.name = CAP_BASE_PITCH_LINEAR;
+    cap_pitch->header.common.length_in_words = 0;
+    cap_pitch->header.required = 1;
+    tmp_caps[0] = &cap_pitch->header;
+
+    cap_vidmem->header.common.vendor = VENDOR_NVIDIA;
+    cap_vidmem->header.common.name = NOUVEAU_CAP_VIDMEM_NAME;
+    cap_vidmem->header.common.length_in_words = NOUVEAU_CAP_VIDMEM_WORDS;
+    cap_vidmem->header.required = 0;
+    tmp_caps[1] = &cap_vidmem->header;
+
+    if (cap_contig) {
+        cap_contig->header.common.vendor = VENDOR_NVIDIA;
+        cap_contig->header.common.name = NOUVEAU_CAP_CONTIG_NAME;
+        cap_contig->header.common.length_in_words = NOUVEAU_CAP_CONTIG_WORDS;
+        cap_contig->header.required = 1;
+        tmp_caps[2] = &cap_contig->header;
+    }
+
+    cap_sets[0].constraints = tmp_constr;
+    cap_sets[0].num_constraints = n_pitch_constr;
+    cap_sets[0].capabilities = (const capability_header_t *const *)tmp_caps;
+    cap_sets[0].num_capabilities = n_pitch_caps;
+
+    *capability_sets = cap_sets;
+    *num_sets = n_sets;
+
+    return 0;
 }
 
 static int
@@ -87,8 +218,57 @@ nouveau_device_get_assertion_hints(device_t *dev,
                                    uint32_t *num_hints,
                                    assertion_hint_t **hints)
 {
-    /* TODO */
-    return -1;
+    nouveau_device_t *nouveau_device = (nouveau_device_t *)dev->device_private;
+    uint32_t n_hints;
+    assertion_hint_t *hint_array;
+    uint32_t i;
+
+    if (!nouveau_check_uses(nouveau_device, num_uses, uses)) {
+        /* The app didn't specify any use for this device */
+        *num_hints = 0;
+        *hints    = NULL;
+        return 0;
+    }
+
+    /*
+     * TODO: 1. Fetch internal pixel formats for this device
+     *       2. For each use
+     *            For each pixel format
+     *               If use and pixel format are not compatible, discard pixel
+     *               format
+     *          If different uses have different requirements (e.g. different
+     *          size limits for scanout/render surfaces)
+     *            Find the minimum set that satisfies all uses
+     *       3. If no pixel formats survived OR no compatible uses
+     *            Return 0 hints
+     *       4. Return N hints
+     */
+    n_hints = 1;
+
+    hint_array = (assertion_hint_t *)calloc(n_hints, sizeof(*hint_array));
+    if (!hint_array) {
+        return -1;
+    }
+
+    for (i = 0; i < n_hints; i++) {
+        assertion_hint_t _HINT_INIT_ = {
+            /* XXX max_width/max_height should vary based on usage */
+            .max_width   = nouveau_device->properties.max_dimensions,
+            .max_height  = nouveau_device->properties.max_dimensions,
+
+            /* XXX No format enumeration yet. Assume RGBA8888 everywhere */
+            .num_formats = 0,
+            .formats     = NULL
+        };
+
+        /* Need this because of assertion_hint_t constness */
+        memcpy(&hint_array[i], &_HINT_INIT_, sizeof(_HINT_INIT_));
+    }
+
+    *num_hints = n_hints;
+    *hints = hint_array;
+
+    return 0;
 }
 
 static void
