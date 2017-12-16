@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <allocator/allocator.h>
+#include <allocator/helpers.h>
 
 #include "test_utils.h"
 

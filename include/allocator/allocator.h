@@ -125,36 +125,6 @@ extern int device_export_allocation(device_t *dev,
                                     void **metadata,
                                     int *fd);
 
-/*!
- * Free an array of capability sets created by the allocator library
- */
-extern void free_capability_sets(uint32_t num_capability_sets,
-                                 capability_set_t *capability_sets);
-
-/*!
- * Serialize a capability set to a stream of raw bytes.
- *
- * The caller is responsible for freeing the memory pointed to by
- * <data>:
- *
- *     free(data);
- */
-extern int serialize_capability_set(const capability_set_t *capability_set,
-                                    size_t *data_size,
-                                    void **data);
-
-/*!
- * Allocate a capability set and populate it from a raw stream of bytes.
- *
- * The caller is responsible for freeing the memory pointed to by
- * <capability_set>:
- *
- *     free_capability_sets(1, *capability_set);
- */
-extern int deserialize_capability_set(size_t data_size,
-                                      const void *data,
-                                      capability_set_t **capability_set);
-
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
