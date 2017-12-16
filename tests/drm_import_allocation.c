@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <allocator/allocator.h>
+#include <allocator/utils.h>
 #include <xf86drm.h>
 #include <xf86drmMode.h>
 #include <drm_fourcc.h>
@@ -181,7 +182,7 @@ int main(int argc, char *argv[])
         }
 
         pitch_alignment_cons =
-            find_constraint(&capability_sets[i], CONSTRAINT_PITCH_ALIGNMENT);
+            util_find_constraint(&capability_sets[i], CONSTRAINT_PITCH_ALIGNMENT);
         if (pitch_alignment_cons) {
             pitch_alignment = pitch_alignment_cons->u.pitch_alignment.value;
         }
