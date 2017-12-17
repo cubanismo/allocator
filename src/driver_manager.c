@@ -30,6 +30,8 @@
 #include <dirent.h>
 #include <fnmatch.h>
 #include <string.h>
+#include <limits.h>
+#include <errno.h>
 #include <assert.h>
 #include <allocator/allocator.h>
 #include <allocator/driver.h>
@@ -319,7 +321,8 @@ static int add_drivers_in_dir(const char *dir_name)
     size_t dir_name_len;
 
     if (count < 0 ) {
-        ret = -1;
+        /* Skip non-existent directories */
+        ret = (errno == ENOENT) ? 0 : -1;
         goto done;
     } else if (count == 0) {
         ret = 0;
@@ -377,20 +380,65 @@ done:
 /*!
  * Enumerate, load, and initialize all available driver libraries on the system
  *
- * TODO expand this function to scan home directories and other default config
- * file locations and locations specified by environment variables.  Be sure
- * to check for suid when checking non-secure locations.
- *
  * \return 0 on success, -1 on failure.  Not success does not indicate any
  *         drivers were found.
  */
+
+#define ARRAY_LEN(a) (sizeof(a) / sizeof((a)[0]))
+
+static const char *DEFAULT_SYS_CONF_DIRS[] = {
+    "/usr/share/liballocator",
+    "/usr/local/share/liballocator"
+};
+
+static const char *DEFAULT_USR_CONF_DIRS[] = {
+    ".liballocator"
+};
+
 static int init_drivers(void)
 {
     if (!drivers_initialized) {
+        int i;
+
         drivers_initialized = 1;
 
-        /* TODO Don't use a single hard-coded path. */
-        return add_drivers_in_dir("/etc/allocator");
+        /* Load drivers under default system configuration directories */
+        for (i = 0; i < ARRAY_LEN(DEFAULT_SYS_CONF_DIRS); i++) {
+            if (add_drivers_in_dir(DEFAULT_SYS_CONF_DIRS[i]) < 0) {
+                return -1;
+            }
+        }
+
+        /* If not running as setuid, also try user configuration directories */
+        if (getuid() == geteuid()) {
+            const char *home = getenv("HOME");
+            const char *usr_extra = getenv("__LIBALLOCATOR_EXTRA_CONF_DIRS");
+
+            /* Default user configuration directories */
+            for (i = 0; i < ARRAY_LEN(DEFAULT_USR_CONF_DIRS); i++) {
+                char tmp[PATH_MAX];
+                strcpy(tmp, home);
+                strcat(tmp, "/");
+                strcat(tmp, DEFAULT_USR_CONF_DIRS[i]);
+                if (add_drivers_in_dir(tmp) < 0) {
+                    return -1;
+                }
+            }
+
+            /* User-defined extra directories */
+            if (usr_extra) {
+                char *tmp = strdup(usr_extra);
+                char *dir = strtok(tmp, ":");
+                while (dir) {
+                    if (add_drivers_in_dir(dir) < 0) {
+                        free(tmp);
+                        return -1;
+                    }
+                    dir = strtok(NULL, ":");
+                }
+                free(tmp);
+            }
+        }
     }
 
     return 0;
