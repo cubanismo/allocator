@@ -24,6 +24,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
+#include <inttypes.h>
 
 #include "test_utils.h"
 
@@ -91,13 +92,13 @@ void print_constraint(const constraint_t *constraint)
     case CONSTRAINT_ ## NAME:                                                   \
         printf("         name:  CONSTRAINT_" #NAME " (0x%x)\n",                 \
                constraint->name);                                               \
-        printf("         value: " FMT "\n", constraint->u.UNION_MEMBER.value);  \
+        printf("         value: %" FMT "\n", constraint->u.UNION_MEMBER.value);  \
         break
 
     switch (constraint->name) {
-    DO_PRINT_CONSTRAINT(ADDRESS_ALIGNMENT, "%llu", address_alignment);
-    DO_PRINT_CONSTRAINT(PITCH_ALIGNMENT, "%u", pitch_alignment);
-    DO_PRINT_CONSTRAINT(MAX_PITCH, "%u", max_pitch);
+    DO_PRINT_CONSTRAINT(ADDRESS_ALIGNMENT, PRIu64, address_alignment);
+    DO_PRINT_CONSTRAINT(PITCH_ALIGNMENT, PRIu32, pitch_alignment);
+    DO_PRINT_CONSTRAINT(MAX_PITCH, PRIu32, max_pitch);
     default:
         printf("         name:  UNKNOWN (0x%x)\n", constraint->name);
         printf("         value: ");
