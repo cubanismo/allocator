@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
 
     int opt;
     size_t num_devices = 0;
-    size_t i;
+    int i;
     char **dev_file_names = NULL;
     char **temp;
     int *dev_fds;
@@ -155,7 +155,7 @@ int main(int argc, char *argv[])
                                        &assertion_hints) ||
             (num_assertion_hints == 0)) {
             FAIL("Couldn't get assertion hints for given usage from "
-                 "device %zd\n", i);
+                 "device %i\n", i);
         }
 
         assertion.width = assertion_hints[0].max_width;
@@ -167,7 +167,7 @@ int main(int argc, char *argv[])
         if (device_get_capabilities(devs[i], &assertion, num_uses, &uses,
                                     &num_capability_sets[i],
                                     &capability_sets[i])) {
-            FAIL("Couldn't get capabilities for given usage from device %zd\n",
+            FAIL("Couldn't get capabilities for given usage from device %i\n",
                  i);
         }
 
@@ -176,7 +176,7 @@ int main(int argc, char *argv[])
             uint32_t n;
 
             for (n = 0; n < num_capability_sets[i]; n++) {
-                printf("Device %d - Set %d:\n", i, n);
+                printf("Device %i - Set %d:\n", i, n);
                 print_capability_set(&capability_sets[i][n]);
             }
         }
@@ -209,7 +209,7 @@ int main(int argc, char *argv[])
                                             tmp_set)) {
                     /* Print tmp_set to compare */
                     if (verbose) {
-                        printf("Deserialized (Device %d - Set %d):\n", i, n);
+                        printf("Deserialized (Device %i - Set %d):\n", i, n);
                         print_capability_set(tmp_set);
                     }
 
@@ -238,7 +238,7 @@ int main(int argc, char *argv[])
                 /* Print tmp_sets to compare */
                 if (verbose) {
                     for (n = 0; n < tmp_num_sets[0]; n++) {
-                        printf("Derived (Device %d - Set %d):\n", i, n);
+                        printf("Derived (Device %i - Set %d):\n", i, n);
                         print_capability_set(&tmp_sets[0][n]);
                     }
                 }
@@ -252,7 +252,7 @@ int main(int argc, char *argv[])
                                             &tmp_sets[0][n])) {
                     /* Print tmp_set to compare */
                     if (verbose) {
-                        printf("Derived (Device %d - Set %d):\n", i, n);
+                        printf("Derived (Device %i - Set %d):\n", i, n);
                         print_capability_set(&tmp_sets[0][n]);
                     }
 
@@ -284,7 +284,7 @@ int main(int argc, char *argv[])
         if (verbose) {
             uint32_t n;
             for (n = 0; n < tmp_num_sets[next]; n++) {
-                printf("Derived against device %d (set %d):\n", i, n);
+                printf("Derived against device %i (set %d):\n", i, n);
                 print_capability_set(&tmp_sets[next][n]);
             }
         }
