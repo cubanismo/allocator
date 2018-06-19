@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <allocator/allocator.h>
+#include <allocator/helpers.h>
 
 #include "test_utils.h"
 
@@ -62,12 +63,27 @@ int main(int argc, char *argv[])
             USAGE_LENGTH_IN_WORDS(usage_texture_t)  /* length_in_word */
         }
     };
+    static usage_display_t display_usage = {
+        { /* header */
+            VENDOR_BASE,                            /* usage vendor */
+            USAGE_BASE_DISPLAY,                     /* usage name */
+            USAGE_LENGTH_IN_WORDS(usage_display_t)  /* length_in_word */
+        },
 
-    static usage_t uses = {
-        NULL,                   /* dev, overidden below */
-        &texture_usage.header   /* usage */
+        USAGE_BASE_DISPLAY_ROTATION_0
     };
-    static const uint32_t num_uses = 1;
+
+    static usage_t uses[] = {
+        {
+            NULL,                   /* dev, overidden below */
+            &texture_usage.header   /* usage */
+        },
+        {
+            NULL,                   /* dev, overidden below */
+            &display_usage.header   /* usage */
+        }
+    };
+    static const uint32_t num_uses = sizeof(uses) / sizeof(usage_t);
 
     uint32_t num_assertion_hints = 0;
     assertion_hint_t *assertion_hints;
@@ -80,7 +96,7 @@ int main(int argc, char *argv[])
 
     int opt;
     size_t num_devices = 0;
-    int i;
+    int i, j;
     char **dev_file_names = NULL;
     char **temp;
     int *dev_fds;
@@ -147,10 +163,12 @@ int main(int argc, char *argv[])
             FAIL("Couldn't create allocator device from device FD\n");
         }
 
-        uses.dev = devs[i];
+        for (j = 0; j < num_uses; j++) {
+            uses[j].dev = devs[i];
+        }
 
         /* Query assertion hints and use maximum surface size reported */
-        if (device_get_assertion_hints(devs[i], num_uses, &uses,
+        if (device_get_assertion_hints(devs[i], num_uses, uses,
                                        &num_assertion_hints,
                                        &assertion_hints) ||
             (num_assertion_hints == 0)) {
@@ -164,7 +182,7 @@ int main(int argc, char *argv[])
         free_assertion_hints(num_assertion_hints, assertion_hints);
 
         /* Query capabilities for a common usage case from the device */
-        if (device_get_capabilities(devs[i], &assertion, num_uses, &uses,
+        if (device_get_capabilities(devs[i], &assertion, num_uses, uses,
                                     &num_capability_sets[i],
                                     &capability_sets[i])) {
             FAIL("Couldn't get capabilities for given usage from device %i\n",

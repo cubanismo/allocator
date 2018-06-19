@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <allocator/allocator.h>
+#include <allocator/utils.h>
 #include <xf86drm.h>
 #include <xf86drmMode.h>
 #include <drm_fourcc.h>
@@ -39,8 +40,8 @@
 
 static void usage(void)
 {
-    printf("\nUsage: drm_import_allocation [-f|--file] <ALLOCATOR_DEVICE_FILE_NAME> "
-           "[-d|--drm-file] <DRM_DEVICE_FILE_NAME>\n");
+    printf("\nUsage: drm_import_allocation [-d|--drm-file] <DRM_DEVICE_FILE_NAME> "
+           "[[-f|--file] <ALLOCATOR_DEVICE_FILE_NAME>]\n");
 }
 
 int main(int argc, char *argv[])
@@ -119,24 +120,28 @@ int main(int argc, char *argv[])
         }
     }
 
-    if (!dev_file_name || !drm_file_name) {
+    if (!drm_file_name) {
         usage();
         exit(1);
-    }
-
-    dev_fd = open(dev_file_name, O_RDWR);
-    if (dev_fd < 0) {
-        FAIL("Couldn't open allocator device file %s\n", dev_file_name);
-    }
-
-    dev = device_create(dev_fd);
-    if (!dev) {
-        FAIL("Couldn't create allocator device from device FD\n");
     }
 
     drm_fd = open(drm_file_name, O_RDWR);
     if (drm_fd < 0) {
         FAIL("Couldn't open DRM device file %s\n", dev_file_name);
+    }
+
+    if (!dev_file_name || !strcmp(drm_file_name, dev_file_name)) {
+        dev_fd = drm_fd;
+    } else {
+        dev_fd = open(dev_file_name, O_RDWR);
+        if (dev_fd < 0) {
+            FAIL("Couldn't open allocator device file %s\n", dev_file_name);
+        }
+    }
+
+    dev = device_create(dev_fd);
+    if (!dev) {
+        FAIL("Couldn't create allocator device from device FD\n");
     }
 
     /* Query capabilities for a common usage case from the device */
@@ -181,7 +186,7 @@ int main(int argc, char *argv[])
         }
 
         pitch_alignment_cons =
-            find_constraint(&capability_sets[i], CONSTRAINT_PITCH_ALIGNMENT);
+            util_find_constraint(&capability_sets[i], CONSTRAINT_PITCH_ALIGNMENT);
         if (pitch_alignment_cons) {
             pitch_alignment = pitch_alignment_cons->u.pitch_alignment.value;
         }
@@ -215,7 +220,9 @@ int main(int argc, char *argv[])
 done:
     device_destroy(dev);
 
-    close(dev_fd);
+    if (dev_fd != drm_fd) {
+        close(dev_fd);
+    }
 
     printf("Success\n");
 
